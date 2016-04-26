@@ -1,0 +1,22 @@
+{
+“manifest_version”: 2,
+“name”: “e-Accounting“,
+“description”: “Aplikasi e-Accounting untuk offline user“,
+“version”: “1.0”,
+“icons”: {
+“128”: “128.png”
+},
+“app”: {
+“urls”: [
+“http://localhost/eadev/client”
+
+],
+“launch”: {
+“web_url”: “http://localhost/eadev/client”
+}
+},
+“permissions”: [
+“unlimitedStorage”,
+“notifications”
+]
+}

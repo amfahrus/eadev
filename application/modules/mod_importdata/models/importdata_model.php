@@ -82,8 +82,8 @@ class importdata_model extends CI_Model {
 				
 			}
 		}
-		//$this->db->query($sql);
-		echo $sql;
+		$this->db->query($sql);
+		//echo $sql;
 	}
 	
     /*private function getYearPeriod($data,$kode_proyek){
@@ -144,7 +144,7 @@ class importdata_model extends CI_Model {
 						tanggal, nobukti, dperkir_id, id_proyek, kdnasabah, 
 						kdsbdaya, keterangan, volume, dk, rupiah, 
 						create_id, create_time, create_ip, modify_id, modify_time, modify_ip, 
-						gid, jurnal_jenisjurnal_id, no_dokumen)
+						gid, jenisjurnal_id, no_dokumen)
 						   SELECT 
 								".$tanggal.", ".$nobukti.", ".$dperkir_id.", ".$id_proyek.", ".$kdnasabah.",
 								".$kdsbdaya.", ".$keterangan.", ".$volume.", ".$dk.", ".$rupiah.",
@@ -235,8 +235,8 @@ class importdata_model extends CI_Model {
 				$saldo_perekanan_ending = !empty($val['saldo_perekanan_ending'])?$val['saldo_perekanan_ending']:'NULL';
 				$saldo_perekanan_credits = !empty($val['saldo_perekanan_credits'])?$val['saldo_perekanan_credits']:'NULL';
 				$saldo_perekanan_debits = !empty($val['saldo_perekanan_debits'])?$val['saldo_perekanan_debits']:'NULL';
-				$saldo_perekanan_dirty = !empty($val['saldo_perekanan_dirty'])?$val['saldo_perekanan_dirty']:'NULL';
-				$saldo_perekanan_yearend = !empty($val['saldo_perekanan_yearend'])?$val['saldo_perekanan_yearend']:'NULL';
+				$saldo_perekanan_dirty = !empty($val['saldo_perekanan_dirty'])?"'".$val['saldo_perekanan_dirty']."'":'NULL';
+				$saldo_perekanan_yearend = !empty($val['saldo_perekanan_yearend'])?$val['saldo_perekanan_yearend']:0;
 				$tmp .= "UPDATE saldo_perekanan
 						SET saldo_perekanan_id_proyek=".$saldo_perekanan_id_proyek.", 
 							saldo_perekanan_period_key=".$saldo_perekanan_period_key.", 
@@ -283,8 +283,8 @@ class importdata_model extends CI_Model {
 				$dgs_ending = !empty($val['saldo_perekanan_ending'])?$val['saldo_perekanan_ending']:'NULL';
 				$dgs_credits = !empty($val['saldo_perekanan_credits'])?$val['saldo_perekanan_credits']:'NULL';
 				$dgs_debits = !empty($val['saldo_perekanan_debits'])?$val['saldo_perekanan_debits']:'NULL';
-				$dgs_dirty = !empty($val['saldo_perekanan_dirty'])?$val['saldo_perekanan_dirty']:'NULL';
-				$dgs_yearend = !empty($val['saldo_perekanan_yearend'])?$val['saldo_perekanan_yearend']:'NULL';
+				$dgs_dirty = !empty($val['saldo_perekanan_dirty'])?"'".$val['saldo_perekanan_dirty']."'":'NULL';
+				$dgs_yearend = !empty($val['saldo_perekanan_yearend'])?$val['saldo_perekanan_yearend']:0;
 				$tmp .= "UPDATE tbl_dperkir_group_saldo
 						SET id_proyek=".$id_proyek.", 
 							dgs_period_key=".$dgs_period_key.", 
@@ -327,8 +327,8 @@ class importdata_model extends CI_Model {
 				$trialbal_ending = !empty($val['trialbal_ending'])?$val['trialbal_ending']:'NULL';
 				$trialbal_credits = !empty($val['trialbal_credits'])?$val['trialbal_credits']:'NULL';
 				$trialbal_debits = !empty($val['trialbal_debits'])?$val['trialbal_debits']:'NULL';
-				$trialbal_dirty = !empty($val['trialbal_dirty'])?$val['trialbal_dirty']:'NULL';
-				$trialbal_yearend = !empty($val['trialbal_yearend'])?$val['trialbal_yearend']:'NULL';
+				$trialbal_dirty = !empty($val['trialbal_dirty'])?"'".$val['trialbal_dirty']."'":'NULL';
+				$trialbal_yearend = !empty($val['trialbal_yearend'])?$val['trialbal_yearend']:0;
 				$tmp .= "UPDATE trialbal
 						SET id_proyek=".$id_proyek.", 
 							trialbal_period_key=".$trialbal_period_key.", 
@@ -350,7 +350,7 @@ class importdata_model extends CI_Model {
 								".$id_proyek.", ".$trialbal_period_key.", ".$trialbal_dperkir_id.",
 								".$trialbal_beginning.", ".$trialbal_ending.", ".$trialbal_credits.",
 								".$trialbal_debits.", ".$trialbal_dirty.", ".$trialbal_yearend."
-						   WHERE NOT EXISTS (SELECT 1 FROM tbl_dperkir_group_saldo WHERE id_proyek=".$id_proyek." AND 
+						   WHERE NOT EXISTS (SELECT 1 FROM trialbal WHERE id_proyek=".$id_proyek." AND 
 																				trialbal_dperkir_id=".$trialbal_dperkir_id." AND 
 																				trialbal_period_key=".$trialbal_period_key.");";
 			}
