@@ -1,0 +1,10 @@
+<a href="<?= base_url(); ?>"><span style="background-image: url(<?= base_url(); ?>media/modules/dashboard.png)">Dashboard</span></a>
+<?php
+$tabs = $this->session->userdata('tabs');
+if (!$tabs)
+    $tabs = array();
+
+foreach ($tabs as $tab) {
+    ?>
+    <a href="<?= site_url($tab['link']); ?>"><span style="background-image: url(<?= base_url(); ?>media/modules/<?= $tab['icon']; ?>)"><?= $tab['modules']; ?></span></a>
+<?php } ?>			

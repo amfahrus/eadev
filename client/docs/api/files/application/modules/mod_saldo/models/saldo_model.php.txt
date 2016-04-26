@@ -1,0 +1,307 @@
+<?php
+
+class saldo_model extends CI_Model {
+
+    protected $_table;
+    protected $_countAll;
+
+    public function __construct() {
+        parent::__construct();
+        $this->config->load('database_tables', TRUE);
+        $this->_table = $this->config->item('database_tables');
+    }
+
+	function getPeriodAll($limit, $offset, $sidx, $sord, $cari, $search) {
+		$userconfig = $this->dataset_db->getUserconfig($this->session->userdata('ba_user_id'));
+		$proyek = $userconfig["kolom2"];
+		
+		if (!is_array($cari))
+            $cari = array();
+
+        $this->db->start_cache();
+        if ($search == "true") {
+            foreach ($cari as $row) {
+                 if (!empty($row['cols']) AND !empty($row['ops'])) {
+                    $fields = explode(":", $row['cols']);
+                    switch ($row['ops']) {
+                        case "=":
+                            $this->db->where($fields[1], strtolower($row['vals']));
+                            break;
+                        case "!=":
+                            $this->db->where($fields[1] . " !=", strtolower($row['vals']));
+                            break;
+                        case "like":
+                            $this->db->like($fields[1], strtolower($row['vals']), 'both');
+                            break;
+                        case "not like":
+                            $this->db->not_like($fields[1], strtolower($row['vals']));
+                            break;
+                        case ">":
+                            $this->db->where($fields[1] . " >", strtolower($row['vals']));
+                            break;
+                        case "<":
+                            $this->db->where($fields[1] . " <", strtolower($row['vals']));
+                            break;
+                        case ">=":
+                            $this->db->where($fields[1] . " >=", strtolower($row['vals']));
+                            break;
+                        case "<=":
+                            $this->db->where($fields[1] . " <=", strtolower($row['vals']));
+                            break;
+                    }
+                }
+            }
+        }
+        
+        $this->db->start_cache();
+        $this->db->select('b.nama_proyek,a.*');
+        $this->db->from('period a');
+        $this->db->join('tbl_proyek b','a.id_proyek = b.id_proyek','LEFT');
+        $this->db->where('a.period_initial','TRUE');
+        $this->db->where('a.id_proyek',$proyek);
+        $this->_countAll = $this->db->count_all_results();
+        $this->db->order_by($sidx, $sord);
+        $this->db->limit($limit, $offset);
+        $query = $this->db->get();
+        $this->db->flush_cache();
+
+        //return $query->result_array();
+        $tmp_result = array();
+							  
+		foreach($query->result_array() as $row){
+			$tmp_result[] = array(
+					'id' 			=> $row['period_key'],
+					'nama_proyek' 	=> $row['nama_proyek'],
+					'period_name' 	=> $row['period_name'],
+					'period_start' 	=> $row['period_start'],
+					'period_end' 	=> $row['period_end']
+				);
+		}		
+		
+        return $tmp_result;
+
+    }
+
+    function getAll($limit, $offset, $sidx, $sord, $cari, $search, $key) {
+		$userconfig = $this->dataset_db->getUserconfig($this->session->userdata('ba_user_id'));
+		$proyek = $userconfig["kolom2"];
+		$_table = $this->_table['tbl_dperkir'];
+		
+		if (!is_array($cari))
+            $cari = array();
+
+        $this->db->start_cache();
+        if ($search == "true") {
+            foreach ($cari as $row) {
+                if (!empty($row['cols']) AND !empty($row['ops'])) {
+                    $fields = explode(":", $row['cols']);
+                    switch ($row['ops']) {
+                        case "=":
+                            $this->db->where($fields[1], strtolower($row['vals']));
+                            break;
+                        case "!=":
+                            $this->db->where($fields[1] . " !=", strtolower($row['vals']));
+                            break;
+                        case "like":
+                            $this->db->like($fields[1], strtolower($row['vals']), 'both');
+                            break;
+                        case "not like":
+                            $this->db->not_like($fields[1], strtolower($row['vals']));
+                            break;
+                        case ">":
+                            $this->db->where($fields[1] . " >", strtolower($row['vals']));
+                            break;
+                        case "<":
+                            $this->db->where($fields[1] . " <", strtolower($row['vals']));
+                            break;
+                        case ">=":
+                            $this->db->where($fields[1] . " >=", strtolower($row['vals']));
+                            break;
+                        case "<=":
+                            $this->db->where($fields[1] . " <=", strtolower($row['vals']));
+                            break;
+                    }
+                }
+            }
+        }
+        
+        $this->db->start_cache();
+        $this->db->select("a.kdperkiraan, a.nmperkiraan, b.importsaldo_rupiah as rupiah");
+        $this->db->from($_table." a");
+        $this->db->join("tbl_importsaldo b","a.kdperkiraan = b.importsaldo_kdperkiraan and b.importsaldo_period_key = $key and b.importsaldo_id_proyek = $proyek","LEFT");
+        $this->_countAll = $this->db->count_all_results();
+        $this->db->order_by($sidx, $sord);
+        $this->db->limit($limit, $offset);
+        $query = $this->db->get();
+        $this->db->flush_cache();
+
+        //return $query->result_array();
+        $tmp_result = array();
+							  
+		foreach($query->result_array() as $row){
+			$tmp_result[] = array(
+					'id' 			=> $row['kdperkiraan'],
+					'check'			=> "<input type=\"checkbox\" value=\"" . $row['kdperkiraan'] . "\" name=\"jq_checkbox_added[]\" class=\"jq_checkbox_added\" />",
+					'kdperkiraan' 	=> $row['kdperkiraan'],
+					'nmperkiraan' 	=> $row['nmperkiraan'],
+					'rupiah' 		=> $row['rupiah']
+				);
+		}		
+		
+        return $tmp_result;
+
+    }
+
+    public function countAll() {
+        return $this->_countAll;
+    }
+	
+	public function getPeriodeByKey($key) {
+		$userconfig = $this->dataset_db->getUserconfig($this->session->userdata('ba_user_id'));
+		$proyek = $userconfig["kolom2"];
+		$this->db->from('period');
+		$this->db->where('period_key',$key);
+		$this->db->where('id_proyek',$proyek);
+		return $this->db->get();
+	}
+	
+	public function getSaldo($key, $data = array()) {
+		$userconfig = $this->dataset_db->getUserconfig($this->session->userdata('ba_user_id'));
+		$proyek = $userconfig["kolom2"];
+        if (!is_array($data))
+            $data = array();
+
+        $this->db->select("*");
+        $this->db->from("tbl_importsaldo");
+        $this->db->where("importsaldo_id_proyek", $proyek);
+        $this->db->where("importsaldo_period_key", $key);
+        $this->db->where_in("importsaldo_kdperkiraan", $data);
+        $query = $this->db->get();
+		$tempResult = array();
+        if ($query->num_rows() > 0) {
+            foreach ($query->result_array() as $row) {
+                $tempResult[$row["importsaldo_id"]]["importsaldo_tanggal"] = $row["importsaldo_tanggal"];
+                $tempResult[$row["importsaldo_id"]]["importsaldo_id_proyek"] = $row["importsaldo_id_proyek"];
+                $tempResult[$row["importsaldo_id"]]["importsaldo_period_key"] = $row["importsaldo_period_key"];
+                $tempResult[$row["importsaldo_id"]]["importsaldo_kdperkiraan"] = $row["importsaldo_kdperkiraan"];
+                $tempResult[$row["importsaldo_id"]]["importsaldo_rupiah"] = $row["importsaldo_rupiah"];
+                }
+            return $tempResult;
+        } else {
+            return false;
+        }
+    }
+	
+	public function savetotempjurnal($data = array()) {
+        if (!is_array($data))
+            $data = array();
+
+        $this->db->trans_start();
+        $this->db->insert_batch("tbl_tempjurnal", $data);
+        $this->db->trans_complete();
+
+        if ($this->db->trans_status() === TRUE) {
+            return TRUE;
+        } else {
+            return FALSE;
+        }
+    }
+    
+    public function getTrialbalByArray($data,$perkir) {
+		$this->db->from('trialbal');
+		$this->db->where($data);
+		$this->db->where_in($perkir);
+		$query = $this->db->get();
+        if ($query->num_rows() > 0) {
+            return true;
+        } else {
+            return false;
+        }
+	}
+    
+    public function savetotrialbal($data = array()) {
+        if (!is_array($data))
+            $data = array();
+
+        $this->db->trans_start();
+        $this->db->insert_batch("trialbal", $data);
+        $this->db->trans_complete();
+
+        if ($this->db->trans_status() === TRUE) {
+            return TRUE;
+        } else {
+            return FALSE;
+        }
+    }
+    
+    public function edittotrialbal($data, $param, $perkir) {
+        $this->db->trans_start();
+        $this->db->where($param);
+        $this->db->where_in($perkir);
+        $this->db->update("trialbal", $data);
+        $this->db->trans_complete();
+
+        if ($this->db->trans_status() === TRUE) {
+            return TRUE;
+        } else {
+            return FALSE;
+        }
+    }
+    
+    public function getNobukti($tanggal, $id_proyek, $tipe) {
+        $query = $this->db->query("SELECT seq_nobukti_get('" . $tanggal . "'," . $id_proyek . ",'" . $tipe . "') as no_bukti");
+        if ($query->num_rows() > 0) {
+            $row = $query->row_array();
+            return $row['no_bukti'];
+        } else {
+            return false;
+        }
+    }
+    
+    public function getGid($id_proyek) {
+        $query = $this->db->query("select seq_gid_get(" . $id_proyek . ") as gid");
+        if ($query->num_rows() > 0) {
+            $row = $query->row_array();
+            return $row['gid'];
+        } else {
+            return false;
+        }
+    }
+    
+    public function getImportSaldoByArray($data) {
+		$this->db->from('tbl_importsaldo');
+		$this->db->where($data);
+		$query = $this->db->get();
+        if ($query->num_rows() > 0) {
+            return true;
+        } else {
+            return false;
+        }
+	}
+	
+	public function insert($data) {
+        $this->db->trans_start();
+        $this->db->insert("tbl_importsaldo", $data);
+        $this->db->trans_complete();
+
+        if ($this->db->trans_status() === TRUE) {
+            return TRUE;
+        } else {
+            return FALSE;
+        }
+    }
+	
+	public function update($data, $param) {
+        $this->db->trans_start();
+        $this->db->where($param);
+        $this->db->update("tbl_importsaldo", $data);
+        $this->db->trans_complete();
+
+        if ($this->db->trans_status() === TRUE) {
+            return TRUE;
+        } else {
+            return FALSE;
+        }
+    }
+}
+

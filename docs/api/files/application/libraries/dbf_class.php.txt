@@ -1,0 +1,162 @@
+<?php
+
+class dbf_class {
+
+    var $dbf_num_rec;
+    var $dbf_num_field;
+    var $dbf_names = array();
+    var $_raw;
+    var $_rowsize;
+    var $_hdrsize;
+    var $_memos;
+    var $log;
+    var $filename;
+
+    public function __construct() {
+        $CI = & get_instance();
+        $this->db = & $CI->db;
+    }
+
+    public function validate($filename) {
+        $tail = substr($filename, -4);
+        if ((!file_exists($filename)) || (strcasecmp($tail, '.dbf') != 0)) {
+            return $this->log = 'error';
+        } else {
+            $handle = fopen($filename, "r");
+            if (!$handle) {
+                return $this->log = 'error';
+            } else {
+                $this->log = 'success';
+                return $this->filename = $filename;
+            }
+        }
+    }
+
+    public function test() {
+        if ($this->log == 'success') {
+            $this->read_dbf($this->filename);
+//            echo $this->filename . "<br>";
+        }
+    }
+
+    public function read_dbf($filename) {
+        if (!file_exists($filename)) {
+            echo 'Not a valid DBF file !!!';
+            $this->log = 'error';
+            exit;
+        }
+        $tail = substr($filename, -4);
+        if (strcasecmp($tail, '.dbf') != 0) {
+            echo 'Not a valid DBF file !!!';
+            $this->log = 'error';
+            exit;
+        }
+
+        //Read the File
+        $handle = fopen($filename, "r");
+        if (!$handle) {
+            echo "Cannot read DBF file";
+            //exit;
+        }
+        $filesize = filesize($filename);
+        $this->_raw = fread($handle, $filesize);
+        fclose($handle);
+        //Make sure that we indeed have a dbf file...
+        if (!(ord($this->_raw[0]) == 3 || ord($this->_raw[0]) == 131) && ord($this->_raw[$filesize]) != 26) {
+            echo 'Not a valid DBF file !!!';
+            exit;
+        }
+        // 3= file without DBT memo file; 131 ($83)= file with a DBT.
+        $arrHeaderHex = array();
+        for ($i = 0; $i < 32; $i++) {
+            $arrHeaderHex[$i] = str_pad(dechex(ord($this->_raw[$i])), 2, "0", STR_PAD_LEFT);
+        }
+        //Initial information
+        $line = 32; //Header Size
+        //Number of records
+        $this->dbf_num_rec = hexdec($arrHeaderHex[7] . $arrHeaderHex[6] . $arrHeaderHex[5] . $arrHeaderHex[4]);
+        $this->_hdrsize = hexdec($arrHeaderHex[9] . $arrHeaderHex[8]); //Header Size+Field Descriptor
+        //Number of fields
+        $this->_rowsize = hexdec($arrHeaderHex[11] . $arrHeaderHex[10]);
+        $this->dbf_num_field = floor(($this->_hdrsize - $line ) / $line); //Number of Fields
+        //Field properties retrieval looping
+        for ($j = 0; $j < $this->dbf_num_field; $j++) {
+            $name = '';
+            $beg = $j * $line + $line;
+            for ($k = $beg; $k < $beg + 11; $k++) {
+                if (ord($this->_raw[$k]) != 0) {
+                    $name .= $this->_raw[$k];
+                }
+            }
+            $this->dbf_names[$j]['name'] = $name; //Name of the Field
+            $this->dbf_names[$j]['len'] = ord($this->_raw[$beg + 16]); //Length of the field
+            $this->dbf_names[$j]['type'] = $this->_raw[$beg + 11];
+        }
+        if (ord($this->_raw[0]) == 131) { //See if this has a memo file with it...
+            //Read the File
+            $tail = substr($tail, -1, 1);   //Get the last character...
+            if ($tail == 'F') {            //See if upper or lower case
+                $tail = 'T';              //Keep the case the same
+            } else {
+                $tail = 't';
+            }
+            $memoname = substr($filename, 0, strlen($filename) - 1) . $tail;
+            $handle = fopen($memoname, "r");
+            if (!$handle) {
+                echo "Cannot read DBT file";
+                exit;
+            }
+            $filesize = filesize($memoname);
+            $this->_memos = fread($handle, $filesize);
+            fclose($handle);
+        }
+    }
+
+    public function getRow($recnum) {
+        $memoeot = chr(26) . chr(26);
+        $rawrow = substr($this->_raw, $recnum * $this->_rowsize + $this->_hdrsize, $this->_rowsize);
+        $rowrecs = array();
+        $beg = 1;
+        if (ord($rawrow[0]) == 42) {
+            return false;   //Record is deleted...
+        }
+        for ($i = 0; $i < $this->dbf_num_field; $i++) {
+            $col = trim(substr($rawrow, $beg, $this->dbf_names[$i]['len']));
+            if ($this->dbf_names[$i]['type'] != 'M') {
+                $rowrecs[] = $col;
+            } else {
+                $memobeg = $col * 512;  //Find start of the memo block (0=header so it works)
+                $memoend = strpos($this->_memos, $memoeot, $memobeg);   //Find the end of the memo
+                $rowrecs[] = substr($this->_memos, $memobeg, $memoend - $memobeg);
+            }
+            $beg+=$this->dbf_names[$i]['len'];
+        }
+        return $rowrecs;
+    }
+
+    public function dbf2array() {
+        $temp_result[] = array();
+
+        for ($i = 0; $i < $this->dbf_num_rec; $i++) {
+            if ($row = $this->getRow($i)) {
+                for ($j = 0; $j < $this->dbf_num_field; $j++) {
+                    $temp_result[$i][$this->dbf_names[$j]['name']] = $row[$j];
+                }
+            }
+        }
+        return $temp_result;
+    }
+
+    public function num_rec() {
+        return $this->dbf_num_rec;
+    }
+
+    public function field_num() {
+        return $this->dbf_num_field;
+    }
+
+    public function logging() {
+        return $this->log;
+    }
+
+}

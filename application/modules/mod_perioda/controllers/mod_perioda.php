@@ -1,0 +1,520 @@
+<?php
+
+if (!defined('BASEPATH'))
+    exit('No direct script access allowed');
+
+class mod_perioda extends CI_Controller {
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->library('myauth');
+        if (!$this->myauth->logged_in()) {
+            if (IS_AJAX) {
+                header('HTTP/1.1 401 Unauthorized');
+                exit;
+            } else {
+                $this->session->set_userdata('redir', current_url());
+                redirect('mod_user/user_auth');
+            }
+        }
+        $this->myauth->has_role();
+        $this->load->model('perioda_model');
+        $this->load->model('dataset_db');
+        $this->load->library("searchform");
+    }
+
+    public function index() {
+        $this->toolbar->create_toolbar();
+        $this->toolbar->cGroupButton();
+        $this->toolbar->addLink("", "btn tooltips", "#", "form_period_year_new", "icon-book", "Tambah Fiscal Year", "tooltip", "right");
+        $this->toolbar->addLink("", "btn tooltips", "#", "form_period_year_edit", "icon-edit", "Edit Fiscal Year", "tooltip", "right");
+        $this->toolbar->addLink("", "btn tooltips", "#", "form_period_year_delete", "icon-trash", "Delete Fiscal Year", "tooltip", "right");
+        $this->toolbar->eGroupButton();
+        $this->toolbar->cGroupButton();
+        $this->toolbar->addLink("", "btn tooltips", "#", "form_period_year_lock", "cus-lock-go", "Lock Fiscal Year", "tooltip", "right");
+        $this->toolbar->addLink("", "btn tooltips", "#", "form_period_year_unlock", "cus-lock-open", "Open Fiscal Year", "tooltip", "right");
+        $this->toolbar->eGroupButton();
+        $data['toolbars'] = $this->toolbar->generate();
+
+        $data['ptitle'] = "Manajemen Module";
+        $data['navs'] = $this->dataset_db->buildNav(0);
+        $tabs = $this->session->userdata('tabs');
+        if (!$tabs)
+            $tabs = array();
+        $tabs['mod_perioda'] = $this->dataset_db->getModule('mod_perioda');
+        $this->session->set_userdata('tabs', $tabs);
+        $data['current_tab'] = $tabs['mod_perioda']['link'];
+        $data['content'] = $this->load->view('perioda_list', $data, true);
+        $this->load->vars($data);
+        $this->load->view('default_view');
+    }
+
+    public function periodayears_json() {
+
+        $page = $this->input->post('page');
+        $limit = $this->input->post('rows');
+        $sidx = $this->input->post('sidx');
+        $sord = $this->input->post('sord');
+
+        $page = !empty($page) ? $page : 1;
+        $limit = !empty($limit) ? $limit : 10;
+        $sidx = !empty($sidx) ? $sidx : "date(yearperiod_start)";
+        $sord = !empty($sord) ? $sord : "asc";
+
+        $offset = ($page * $limit) - $limit;
+        $offset = ($offset < 0) ? 0 : $offset;
+
+        if (!$sidx)
+            $sidx = 1;
+
+        $userconfig = $this->dataset_db->getUserconfig($this->session->userdata('ba_user_id'));
+        $query = $this->perioda_model->getAllYear($limit, $offset, $sidx, $sord, $userconfig["kolom2"]);
+        $count = $this->perioda_model->countAll();
+
+        if ($count > 0) {
+            $total_pages = ceil($count / $limit);
+        } else {
+            $total_pages = 0;
+        }
+
+        if ($page > $total_pages)
+            $page = $total_pages;
+
+        $responce['page'] = $page;
+        $responce['total'] = $total_pages;
+        $responce['records'] = $count;
+        $i = 0;
+        foreach ($query as $row) {
+            $responce['rows'][$i]['id'] = $row['yearperiod_id'];
+            $responce['rows'][$i]['cell'] = array(
+                '',
+                $row['yearperiod_id'],
+                $row['yearperiod_key'],
+                $row['id_proyek'],
+                $row['nama_kategoriproyek'],
+                $row['proyek'],
+                $row['yearperiod_start'],
+                $row['yearperiod_end'],
+                $row['yearperiod_closed']);
+            $i++;
+        }
+
+        echo json_encode($responce);
+    }
+
+    public function perioda_json() {
+
+        $page = $this->input->post('page');
+        $limit = $this->input->post('rows');
+        $sidx = $this->input->post('sidx');
+        $sord = $this->input->post('sord');
+        $year_id = $_GET["id"];
+
+        $page = !empty($page) ? $page : 1;
+        $limit = !empty($limit) ? $limit : 10;
+        $sidx = !empty($sidx) ? $sidx : "date(period_start)";
+        $sord = !empty($sord) ? $sord : "asc";
+
+        $offset = ($page * $limit) - $limit;
+        $offset = ($offset < 0) ? 0 : $offset;
+
+        if (!$sidx)
+            $sidx = 1;
+
+        $userconfig = $this->dataset_db->getUserconfig($this->session->userdata('ba_user_id'));
+        $query = $this->perioda_model->getAll($limit, $offset, $sidx, $sord, $year_id, $userconfig["kolom2"]);
+        $count = $this->perioda_model->countAll();
+
+        if ($count > 0) {
+            $total_pages = ceil($count / $limit);
+        } else {
+            $total_pages = 0;
+        }
+
+        if ($page > $total_pages)
+            $page = $total_pages;
+
+        $responce['page'] = $page;
+        $responce['total'] = $total_pages;
+        $responce['records'] = $count;
+        $i = 0;
+
+        foreach ($query as $row) {
+            $responce['rows'][$i]['id'] = $row['period_id'];
+            $responce['rows'][$i]['cell'] = array(
+                $row['period_id'],
+                $row['id_proyek'],
+                $row['nama_kategoriproyek'],
+                $row['proyek'],
+                $row['period_name'],
+                $row['period_start'],
+                $row['period_end'],
+                $row['period_closed']);
+            $i++;
+        }
+
+        echo json_encode($responce);
+    }
+
+    public function perioda_bulan() {
+        $data["id"] = $_GET["id"];
+        $data['content'] = $this->load->view('periodabulan_list', $data, true);
+        $this->load->vars($data);
+        $this->load->view('default_picker');
+    }
+
+    public function perioda_bulan_add() {
+        $data["id"] = $_GET["id"];
+        $data['content'] = $this->load->view('periodabulan_add', $data, true);
+        $this->load->vars($data);
+        $this->load->view('default_picker');
+    }
+
+    public function perioda_bulan_add_act() {
+        $this->form_validation->set_rules("form_perioda_bulan_name", "Nama Periode", "required");
+        $this->form_validation->set_rules("form_perioda_bulan_start_date", "Periode Awal", "required");
+        $this->form_validation->set_rules("form_perioda_bulan_end_date", "Periode Akhir", "required");
+        $this->form_validation->set_rules("form_perioda_bulan_quarter", "Quarter", "required|numeric");
+        $this->form_validation->set_rules("form_perioda_year_id", "Year ID", "required|numeric");
+
+        if ($this->form_validation->run() == TRUE) {
+            $userconfig = $this->dataset_db->getUserconfig($this->session->userdata('ba_user_id'));
+
+            $id_proyek = $userconfig["kolom2"];
+            $id_year = $this->input->post("form_perioda_year_id");
+            $pname = $this->input->post("form_perioda_bulan_name");
+            $start_date = $this->input->post("form_perioda_bulan_start_date");
+            $end_date = $this->input->post("form_perioda_bulan_end_date");
+            $quarter = $this->input->post("form_perioda_bulan_quarter");
+
+            $period_create = $this->perioda_model->periodebulan_create($pname, $start_date, $end_date, $id_year, $id_proyek, $quarter);
+            switch ($period_create) {
+                case ($period_create > 0):
+                    $data['success'] = '<p>Data Periode Berhasil Disimpan</p>';
+                    break;
+                case (-1):
+                    $data['error'] = '<p>Data Tanggal Awal Memakai Periode Yang Lain</p>';
+                    break;
+                case (-2):
+                    $data['error'] = '<p>Data Tanggal Akhir Memakai Periode Yang Lain</p>';
+                    break;
+                case (-3):
+                    $data['error'] = '<p>Data Periode Gagal Di Simpan</p>';
+                    break;
+                case (-4):
+                    $data['error'] = '<p>Data Periode Ini Tidak Berada Dalam Fiscal Year</p>';
+                    break;
+                default:
+                    $data['error'] = '<p>Data Periode Gagal Disimpan</p>';
+                    break;
+            }
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        } else {
+            $data['error'] = validation_errors();
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        }
+    }
+
+    public function perioda_add() {
+        $data['content'] = $this->load->view('perioda_add', "", true);
+        $this->load->vars($data);
+        $this->load->view('default_picker');
+    }
+
+    public function addperioda() {
+        $this->form_validation->set_rules("start_date", "start_date", "required");
+        $this->form_validation->set_rules("end_date", "end_date", "required");
+        $this->form_validation->set_rules("is_closed", "is_closed", "");
+
+        if ($this->form_validation->run() == TRUE) {
+            $start_date = $this->input->post("start_date");
+            $end_date = $this->input->post("end_date");
+            $is_closed = $this->input->post("is_closed");
+            $userconfig = $this->dataset_db->getUserconfig($this->session->userdata('ba_user_id'));
+            $cek = $this->perioda_model->createperiode($start_date, $end_date, $userconfig["kolom2"]);
+
+            switch ($cek) {
+                case -1:
+                    $data['error'] = '<p>Data Periode Ini Telah Ada</p>';
+                    break;
+                case -2:
+                    $data['error'] = '<p>Data Periode Ini Memakai Periode Yang Lain</p>';
+                    break;
+                case -3:
+                    $data['error'] = '<p>Data Gagal Disimpan</p>';
+                    break;
+                case -5:
+                    $data['error'] = '<p>Data Periode Tidak Valid</p>';
+                    break;
+
+                default:
+                    $data['success'] = '<p>Data Periode Berhasil Disimpan</p>';
+                    break;
+            }
+
+
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        } else {
+            $data['error'] = validation_errors();
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        }
+    }
+
+    public function perioda_bulan_delete() {
+        $this->form_validation->set_rules("id", "Harap Pilih Data Yang Akan Dihapus");
+
+        if ($this->form_validation->run() == TRUE) {
+            $id = $this->input->post("id");
+            $userconfig = $this->dataset_db->getUserconfig($this->session->userdata('ba_user_id'));
+
+            $period_delete = $this->perioda_model->periodebulan_delete($id, $userconfig["kolom2"]);
+            switch ($period_delete) {
+                case ($period_delete > 0):
+                    $data['success'] = "<p>Data Berhasil Dihapus</p>";
+                    break;
+                case ($period_delete == -1):
+                    $data['error'] = '<p>Periode Gagal DiHapus, Karena Periode Ini Telah Di Kunci</p>';
+                    break;
+                case ($period_delete == -4):
+                    $data['error'] = '<p>Periode Gagal DiHapus, Karena Telah Ada Jurnal Yang Telah Di Posting</p>';
+                    break;
+                default:
+                    $data['error'] = $period_delete;
+                    break;
+            }
+
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        } else {
+            $data['error'] = validation_errors();
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        }
+    }
+
+    public function perioda_bulan_edit() {
+        $data["id"] = $_GET["id"];
+        $data["rec"] = $this->perioda_model->getPeriodBulan($_GET["id"]);
+        $data['content'] = $this->load->view('periodabulan_edit', $data, true);
+        $this->load->vars($data);
+        $this->load->view('default_picker');
+    }
+
+    public function perioda_bulan_edit_act() {
+		$this->form_validation->set_rules("form_perioda_bulan_name", "Nama Periode", "required");
+        $this->form_validation->set_rules("form_perioda_bulan_quarter", "Quarter", "required|numeric");
+        $this->form_validation->set_rules("form_perioda_bulan_period_key", "Key Periode", "required|numeric");
+        
+        if ($this->form_validation->run() == TRUE) {
+            $userconfig = $this->dataset_db->getUserconfig($this->session->userdata('ba_user_id'));
+			
+			$id_proyek = $userconfig["kolom2"];
+            $key_period = $this->input->post("form_perioda_bulan_period_key");
+            $pname = $this->input->post("form_perioda_bulan_name");
+            $quarter = $this->input->post("form_perioda_bulan_quarter");
+
+            $period_update = $this->perioda_model->periodebulan_update(array("period_name" => $pname, "period_quarter" => $quarter), $id_proyek, $key_period);
+            switch ($period_update) {
+                case ($period_update > 0):
+                    $data['success'] = '<p>Data Periode Berhasil Diupdate</p>';
+                    break;
+                default:
+                    $data['error'] = '<p>Data Periode Gagal Diupdate</p>';
+                    break;
+            }
+			
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        } else {
+            $data['error'] = validation_errors();
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        }
+    }
+
+    public function perioda_bulan_lock() {
+        $this->form_validation->set_rules("id", "ID", "required");
+        if ($this->form_validation->run() == TRUE) {
+            $id = $this->input->post("id");
+            $userconfig = $this->dataset_db->getUserconfig($this->session->userdata('ba_user_id'));
+            $period_lock = $this->perioda_model->perioda_bulan_lock($id, $userconfig["kolom2"]);
+
+            switch ($period_lock) {
+                case ($period_lock > 0):
+                    $data['success'] = "<p>Periode Berhasil Ditutup</p>";
+                    break;
+
+                default:
+                    $data['error'] = "<p>Periode Gagal Ditutup</p>";
+                    break;
+            }
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        } else {
+            $data['error'] = validation_errors();
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        }
+    }
+
+    public function perioda_bulan_unlock() {
+        $this->form_validation->set_rules("id", "ID", "required");
+        if ($this->form_validation->run() == TRUE) {
+            $id = $this->input->post("id");
+            $userconfig = $this->dataset_db->getUserconfig($this->session->userdata('ba_user_id'));
+            $period_lock = $this->perioda_model->perioda_bulan_unlock($id, $userconfig["kolom2"]);
+
+            switch ($period_lock) {
+                case ($period_lock > 0):
+                    $data['success'] = "<p>Periode Berhasil Dibuka</p>";
+                    break;
+
+                default:
+                    $data['error'] = "<p>Periode Gagal Dibuka</p>";
+                    break;
+            }
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        } else {
+            $data['error'] = validation_errors();
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        }
+    }
+
+    public function perioda_bulan_json() {
+        $this->form_validation->set_rules("period_id", "Period ID", "required");
+        if ($this->form_validation->run() == TRUE) {
+            $period_id = $this->input->post("period_id");
+            $data['period'] = $this->perioda_model->getPeriodBulan($period_id);
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        } else {
+            $data['error'] = validation_errors();
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        }
+    }
+
+    public function perioda_year_edit() {
+
+        $data["rec"] = $this->perioda_model->perioda_tahun_get($_GET["id"]);
+        $data['content'] = $this->load->view('perioda_edit', $data, true);
+        $this->load->vars($data);
+        $this->load->view('default_picker');
+    }
+
+    public function perioda_year_edit_act() {
+        $this->form_validation->set_rules("yearperiod_key", "yearperiod_key", "required");
+
+        if ($this->form_validation->run() == TRUE) {
+            $key = $this->input->post("yearperiod_key");
+            $is_closed = $this->input->post("is_closed");
+
+            $userconfig = $this->dataset_db->getUserconfig($this->session->userdata('ba_user_id'));
+            $period_year_edit = $this->perioda_model->perioda_tahun_update(array("yearperiod_closed" => $is_closed), $userconfig["kolom2"], $key);
+
+            switch ($period_year_edit) {
+                case ($period_year_edit > 0):
+                    $data['success'] = "<p>Periode Berhasil Edit</p>";
+                    break;
+
+                default:
+                    $data['error'] = "<p>Periode Gagal Diedit</p>";
+                    break;
+            }
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        } else {
+            $data['error'] = validation_errors();
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        }
+    }
+
+    public function perioda_year_delete() {
+        $this->form_validation->set_rules("id", "Harap Pilih Data Yang Akan Dihapus");
+
+        if ($this->form_validation->run() == TRUE) {
+            $id = $this->input->post("id");
+            $userconfig = $this->dataset_db->getUserconfig($this->session->userdata('ba_user_id'));
+
+            $period_delete = $this->perioda_model->perioda_tahun_delete($id, $userconfig["kolom2"]);
+            switch ($period_delete) {
+                case ($period_delete > 0):
+                    $data['success'] = "<p>Data Berhasil Dihapus</p>";
+                    break;
+
+                default:
+                    $data['error'] = "<p>Data Gagal Dihapus</p>";
+                    break;
+            }
+
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        } else {
+            $data['error'] = validation_errors();
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        }
+    }
+
+    public function perioda_year_lock() {
+        $this->form_validation->set_rules("id", "Harap Pilih Data Yang Akan Dihapus");
+
+        if ($this->form_validation->run() == TRUE) {
+            $id = $this->input->post("id");
+            $userconfig = $this->dataset_db->getUserconfig($this->session->userdata('ba_user_id'));
+
+            $period_delete = $this->perioda_model->perioda_tahun_lock($id, $userconfig["kolom2"]);
+            switch ($period_delete) {
+                case ($period_delete > 0):
+                    $data['success'] = "<p>Data Berhasil Ditutup</p>";
+                    break;
+
+                default:
+                    $data['error'] = "<p>Data Gagal Ditutup</p>";
+                    break;
+            }
+
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        } else {
+            $data['error'] = validation_errors();
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        }
+    }
+
+    public function perioda_year_unlock() {
+        $this->form_validation->set_rules("id", "Harap Pilih Data Yang Akan Dihapus");
+
+        if ($this->form_validation->run() == TRUE) {
+            $id = $this->input->post("id");
+            $userconfig = $this->dataset_db->getUserconfig($this->session->userdata('ba_user_id'));
+
+            $period_delete = $this->perioda_model->perioda_tahun_unlock($id, $userconfig["kolom2"]);
+            switch ($period_delete) {
+                case ($period_delete > 0):
+                    $data['success'] = "<p>Data Berhasil Dibuka</p>";
+                    break;
+
+                default:
+                    $data['error'] = "<p>Data Gagal Dibuka</p>";
+                    break;
+            }
+
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        } else {
+            $data['error'] = validation_errors();
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        }
+    }
+
+}

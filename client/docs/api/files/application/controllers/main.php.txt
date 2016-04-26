@@ -1,0 +1,100 @@
+<?php
+
+if (!defined('BASEPATH'))
+    exit('No direct script access allowed');
+
+Class Main extends CI_Controller {
+
+    private $_userconfig = array();
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->library('myauth');
+        $method = $this->uri->rsegment(2);
+
+        if (!$this->myauth->logged_in()) {
+            if (IS_AJAX) {
+                header('HTTP/1.1 401 Unauthorized');
+                exit;
+            } else {
+                $this->session->set_userdata('redir', current_url());
+                redirect('mod_user/user_auth');
+            }
+        }
+        //$this->myauth->has_role();
+        $this->load->model('dataset_db');
+        $this->load->library("site_library");
+        $this->_userconfig = $this->dataset_db->getUserconfig($this->session->userdata('ba_user_id'));
+    }
+
+    function index() {
+        $data['navs'] = $this->dataset_db->buildNav(0);
+        $data['current_tab'] = 'dashboard';
+        $this->load->vars($data);
+        $this->load->view('default_view');
+    }
+
+    function close_tab($module, $nogo = false) {
+        if (!$module)
+            return true;
+
+        $tabs = $this->session->userdata('tabs');
+        if (!$tabs)
+            $tabs = array();
+        $last_tab = '';
+
+        foreach ($tabs as $tab) {
+            if ($tab['link'] == $module) {
+                unset($tabs[$module]);
+                $this->session->set_userdata('tabs', $tabs);
+                if ($nogo)
+                    return true;
+                redirect($last_tab);
+            }
+            $last_tab = $tab['link'];
+        }
+    }
+
+    public function cekSession() {
+        echo $this->myauth->logged_in();
+    }
+
+    public function getBoolean() {
+        $temp_result = array(
+            array(
+                'image' => '',
+                'description' => '',
+                'value' => 'true',
+                'text' => 'TRUE',
+            ),
+            array(
+                'image' => '',
+                'description' => '',
+                'value' => 'false',
+                'text' => 'FALSE',
+            )
+        );
+        echo json_encode($temp_result);
+    }
+    
+    /*
+     * add by asep
+     * call array returned func from site_library
+     * return it to json
+     */
+    
+    public function getjsonperiod() {
+        $period = $this->site_library->getarrayperiod();
+        echo json_encode($period);
+    }
+
+    /*
+     * @return JSON
+     */
+    public function getperiodkey() {
+        $period = $this->site_library->getperiodkey($this->_userconfig["kolom2"]);
+        echo json_encode($period);
+    }
+
+}
+

@@ -1,0 +1,266 @@
+<?php
+
+if (!defined('BASEPATH'))
+    exit('No direct script access allowed');
+
+class mod_unitkerja extends CI_Controller {
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->library('myauth');
+        if (!$this->myauth->logged_in()) {
+            if (IS_AJAX) {
+                header('HTTP/1.1 401 Unauthorized');
+                exit;
+            } else {
+                $this->session->set_userdata('redir', current_url());
+                redirect('mod_user/user_auth');
+            }
+        }
+        $this->myauth->has_role();
+        $this->load->model('unitkerja_model');
+        $this->load->model('dataset_db');
+        $this->load->library("searchform");
+    }
+
+    public function index() {
+        $this->toolbar->create_toolbar();
+        $this->toolbar->cGroupButton();
+        $this->toolbar->addLink("", "btn tooltips", base_url() . "mod_unitkerja", "form_unitkerja_list", "cus-application", "List Group Data", "tooltip", "right");
+        $this->toolbar->addLink("", "btn tooltips", base_url() . "mod_unitkerja/form_unitkerja_add", "form_unitkerja_new", "cus-application-form-add", "Tambah Group Data", "tooltip", "right");
+        $this->toolbar->addLink("", "btn tooltips", "#", "form_unitkerja_delete", "cus-application-form-delete", "Delete Group Data", "tooltip", "right");
+        $this->toolbar->eGroupButton();
+        $data['toolbars'] = $this->toolbar->generate();
+
+        $DataModel = array(
+            array(
+                'text' => 'Group Data',
+                'value' => 'text:LOWER(nama_unitkerja)',
+                'type' => 'text',
+                'callBack' => '',
+                'ops' => array("like", "not like", "=", "!=")
+            )
+        );
+        $defaultvalue = array();
+
+        $data['searchform'] = $this->searchform->setMultiSearch("true")->setDataModel($DataModel)->setDefaultValue($defaultvalue)->genSearchForm();
+        $data['ptitle'] = "Manajemen Unit Kerja";
+        $data['navs'] = $this->dataset_db->buildNav(0);
+        $tabs = $this->session->userdata('tabs');
+        if (!$tabs)
+            $tabs = array();
+        $tabs['mod_unitkerja'] = $this->dataset_db->getModule('mod_unitkerja');
+        $this->session->set_userdata('tabs', $tabs);
+        $data['current_tab'] = $tabs['mod_unitkerja']['link'];
+        $data['content'] = $this->load->view('unitkerja_list', $data, true);
+        $this->load->vars($data);
+        $this->load->view('default_view');
+    }
+
+    public function unitkerja_json() {
+
+        $search = isset($_GET['_search']) ? $_GET['_search'] : 'false';
+        $page = $this->input->post('page');
+        $limit = $this->input->post('rows');
+        $sidx = $this->input->post('sidx');
+        $sord = $this->input->post('sord');
+
+        $page = !empty($page) ? $page : 1;
+        $limit = !empty($limit) ? $limit : 10;
+        $sidx = !empty($sidx) ? $sidx : "nama_unitkerja";
+        $sord = !empty($sord) ? $sord : "asc";
+
+        if (strtolower($search) == "true") {
+            $cols = isset($_GET['cols']) ? $_GET['cols'] : '';
+            $ops = isset($_GET['ops']) ? $_GET['ops'] : '';
+            $vals = isset($_GET['vals']) ? $_GET['vals'] : '';
+
+            $cari = array();
+            for ($x = 0; $x < count($cols); $x++) {
+                $cari[$x]['cols'] = $cols[$x];
+                $cari[$x]['ops'] = $ops[$x];
+                $cari[$x]['vals'] = $vals[$x];
+            }
+        } else {
+            $cari = "";
+        }
+
+        $offset = ($page * $limit) - $limit;
+        $offset = ($offset < 0) ? 0 : $offset;
+
+        if (!$sidx)
+            $sidx = 1;
+        $query = $this->unitkerja_model->getAll($limit, $offset, $sidx, $sord, $cari, $search);
+        $count = $this->unitkerja_model->countAll();
+
+        if ($count > 0) {
+            $total_pages = ceil($count / $limit);
+        } else {
+            $total_pages = 0;
+        }
+
+        if ($page > $total_pages)
+            $page = $total_pages;
+
+        $responce['page'] = $page;
+        $responce['total'] = $total_pages;
+        $responce['records'] = $count;
+        $i = 0;
+        foreach ($query as $row) {
+            $responce['rows'][$i]['id'] = $row['id_unitkerja'];
+            $responce['rows'][$i]['cell'] = array($row['id_unitkerja'], $row['nama_unitkerja'], $row['keterangan'], $row['is_active'], '<a class="link_edit" href="' . base_url() . 'mod_unitkerja/unitkerja_view/' . $row['id_unitkerja'] . '"><img src="' . base_url() . 'media/edit.png" /></a>');
+            $i++;
+        }
+        echo json_encode($responce);
+    }
+
+    public function form_unitkerja_add() {
+        $this->toolbar->create_toolbar();
+        $this->toolbar->cGroupButton();
+        $this->toolbar->addLink("", "btn tooltips", base_url() . "mod_unitkerja", "form_unitkerja_list", "cus-application", "List Group Data", "tooltip", "right");
+        $this->toolbar->addLink("", "btn tooltips", base_url() . "mod_unitkerja/form_unitkerja_add", "form_unitkerja_new", "cus-application-form-add", "Tambah Group Data", "tooltip", "right");
+        $this->toolbar->addLink("", "btn tooltips", "#", "form_unitkerja_delete", "cus-application-form-delete", "Delete Group Data", "tooltip", "right");
+        $this->toolbar->eGroupButton();
+        $data['toolbars'] = $this->toolbar->generate();
+
+        $data['ptitle'] = "Manajemen Unit Kerja / Add Unit Kerja";
+        $data['hak_akses'] = $this->unitkerja_model->getHakdata();
+        $data['navs'] = $this->dataset_db->buildNav(0);
+        $tabs = $this->session->userdata('tabs');
+        if (!$tabs)
+            $tabs = array();
+        $tabs['mod_unitkerja'] = $this->dataset_db->getModule('mod_unitkerja');
+        $this->session->set_userdata('tabs', $tabs);
+        $data['current_tab'] = $tabs['mod_unitkerja']['link'];
+        $data['content'] = $this->load->view('unitkerja_add', $data, true);
+        $this->load->vars($data);
+        $this->load->view('default_view');
+    }
+
+    public function unitkerja_add() {
+
+        $this->form_validation->set_rules('nama_unitkerja', 'Nama Group Data', 'required|xss_clean');
+        $this->form_validation->set_rules('keterangan', 'Keterangan', 'required|xss_clean');
+
+        if ($this->form_validation->run() == TRUE) {
+            $group["nama_unitkerja"] = $this->input->post("nama_unitkerja");
+            $group["keterangan"] = $this->input->post("keterangan");
+
+            if (!empty($_POST['hak_akses'])) {
+                $hak_akses = $this->input->post('hak_akses');
+                $insert = $this->unitkerja_model->insert($group);
+                if ($insert) {
+                    $data_hakakses = array();
+                    for ($x = 0; $x < count($hak_akses); $x++) {
+                        $data_hakakses[$x]['id_unitkerja'] = $insert;
+                        $data_hakakses[$x]['id_subunitkerja'] = $hak_akses[$x];
+                    }
+                    $this->unitkerja_model->insert_akses($insert, $data_hakakses);
+
+                    $data['success'] = '<p>Data Berhasil Disimpan</p>';
+                    $json['json'] = $data;
+                    $this->load->view('template/ajax', $json);
+                } else {
+                    $data['error'] = '<p>Data Gagal Disimpan</p>';
+                    $json['json'] = $data;
+                    $this->load->view('template/ajax', $json);
+                }
+            } else {
+                $data['error'] = '<p>Data Gagal Disimpan, Harap Pilih Akses Data</p>';
+                $json['json'] = $data;
+                $this->load->view('template/ajax', $json);
+            }
+        } else {
+            $data['error'] = validation_errors();
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        }
+    }
+
+    public function unitkerja_view($id = false) {
+        try {
+            if ($id) {
+                $check_id = $this->unitkerja_model->cekId($id);
+
+                if ($check_id) {
+                    $this->toolbar->create_toolbar();
+                    $this->toolbar->cGroupButton();
+                    $this->toolbar->addLink("", "btn tooltips", base_url() . "mod_unitkerja", "form_unitkerja_list", "cus-application", "List Group Data", "tooltip", "right");
+                    $this->toolbar->addLink("", "btn tooltips", base_url() . "mod_unitkerja/form_unitkerja_add", "form_unitkerja_new", "cus-application-form-add", "Tambah Group Data", "tooltip", "right");
+                    $this->toolbar->addLink("", "btn tooltips", "#", "form_unitkerja_delete", "cus-application-form-delete", "Delete Group Data", "tooltip", "right");
+                    $this->toolbar->eGroupButton();
+                    $data['toolbars'] = $this->toolbar->generate();
+                    
+                    $data['ptitle'] = "Manajemen Unit Kerja / Edit";
+                    $data['detail'] = $this->unitkerja_model->get($id);
+                    $data['hak_akses'] = $this->unitkerja_model->getCheckHakdata($id);
+                    $data['navs'] = $this->dataset_db->buildNav(0);
+                    $tabs = $this->session->userdata('tabs');
+                    if (!$tabs)
+                        $tabs = array();
+                    $tabs['mod_unitkerja'] = $this->dataset_db->getModule('mod_unitkerja');
+                    $this->session->set_userdata('tabs', $tabs);
+                    $data['current_tab'] = $tabs['mod_unitkerja']['link'];
+                    $data['content'] = $this->load->view('unitkerja_edit', $data, true);
+                    $this->load->vars($data);
+                    $this->load->view('default_view');
+                } else {
+                    throw new Exception('Error');
+                }
+            } else {
+                throw new Exception('Error');
+            }
+        } catch (Exception $ex) {
+            redirect('forbidden');
+        }
+    }
+
+    public function unitkerja_edit() {
+
+        $this->form_validation->set_rules('id', 'id', 'required|xss_clean');
+        $this->form_validation->set_rules('nama_unitkerja', 'Nama Group Data', 'required|xss_clean');
+        $this->form_validation->set_rules('keterangan', 'Keterangan', 'required|xss_clean');
+
+        if ($this->form_validation->run() == TRUE) {
+            $id = $this->input->post("id");
+            $field["nama_unitkerja"] = $this->input->post("nama_unitkerja");
+            $field["keterangan"] = $this->input->post("keterangan");
+
+            if (!empty($_POST['hak_akses'])) {
+                $hak_akses = $this->input->post('hak_akses');
+                $update = $this->unitkerja_model->update($field, $id);
+                if ($update) {
+                    $data_hakakses = array();
+                    for ($x = 0; $x < count($hak_akses); $x++) {
+                        $data_hakakses[$x]['id_unitkerja'] = $update;
+                        $data_hakakses[$x]['id_subunitkerja'] = $hak_akses[$x];
+                    }
+                    $this->unitkerja_model->insert_akses($update, $data_hakakses);
+
+                    $data['success'] = '<p>Data Berhasil Disimpan</p>';
+                    $data['redirect'] = base_url() . 'mod_unitkerja';
+                    $json['json'] = $data;
+                    $this->load->view('template/ajax', $json);
+                } else {
+                    $data['error'] = '<p>Data Gagal Disimpan</p>';
+                    $json['json'] = $data;
+                    $this->load->view('template/ajax', $json);
+                }
+            } else {
+                $data['error'] = '<p>Data Gagal Disimpan, Harap Pilih Akses Datanya</p>';
+                $json['json'] = $data;
+                $this->load->view('template/ajax', $json);
+            }
+        } else {
+            $data['error'] = validation_errors();
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        }
+    }
+
+    public function unitkerja_delete() {
+        $id = $this->input->post('id');
+        $this->unitkerja_model->delete($id);
+    }
+
+}

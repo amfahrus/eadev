@@ -1,0 +1,109 @@
+<script>
+    function getDataProyek(id, id_proyek) {
+        $.ajax({
+            url: root + 'mod_rekanan/getDataProyek',
+            type: 'post',
+            data: { id: id, id_proyek:id_proyek},
+            success: function(data) {
+                $('select[name="kode_proyek"]').html(data);
+            }
+        });	
+    }
+    $(document).ready(function() {
+        var id_unitkerja = $('select[name="unitkerja"]').val();
+        var id_proyek = <?php
+                        $id_proyek = set_value('kode_proyek');
+                        if (!empty($id_proyek)) {
+                            echo $id_proyek;
+                        } else {
+                            echo "0";
+                        }
+                        ?>;
+        
+        getDataProyek(id_unitkerja, id_proyek);
+        $('select[name="unitkerja"]').change(function() {
+            var id_unitkerja = $('select[name="unitkerja"]').val();
+            getDataProyek(id_unitkerja, id_proyek);
+        });
+        
+        var lebar = $('.inbody').height() - 200;
+        var panjang = $('.content').width() - 20;
+        jQuery("#list2").jqGrid({
+            datatype: "local",
+            colNames:['','Kode Sumberdaya','Nama Sumberdaya', 'Satuan','Tipe','Status'], 
+            colModel:[
+                {name:'id',key : true, index:'id', hidden:true,width:50},
+                {name:'kode_sbdaya', index:'kode_sbdaya', width:100},
+                {name:'sbdaya', index:'sbdaya', width:100},
+                {name:'satuan',index:'satuan', width:100},
+                {name:'tipe',index:'tipe', width:100},
+                {name:'status',index:'status', width:100}
+            ],
+            scroll: true, 
+            width: panjang, 
+            height: lebar, 
+            rownumbers: true,
+            rowNum:1000,
+            rownumWidth: 40,
+            pager: '#pager2',
+            viewrecords: true,
+            altRows : true,
+            gridComplete: function(){ 
+                var ids = jQuery("#list2").jqGrid('getDataIDs'); 
+                for(var i=0;i < ids.length;i++){ 
+                    var cl = ids[i]; 
+                    ce = "<a href=\"#\" onclick=\"alert("+ids[i]+");\" class=\"link_edit\"><img  src=\"<?= base_url(); ?>media/edit.png\" /></a>"; 
+                    jQuery("#list2").jqGrid('setRowData',ids[i],{act:ce}); 
+                } 
+            }
+            //caption:"List Upload Master Sumberdaya"
+        });
+        var mydata = <?php echo $mydata; ?>; 
+        for(var i=0;i<=mydata.length;i++) jQuery("#list2").jqGrid('addRowData',i+1,mydata[i]);
+        jQuery("#list2").jqGrid('navGrid','#pager2',{edit:false,add:false,del:false,search:false});
+    });
+</script>
+<div class="content">
+    <?= form_open_multipart("mod_sbdaya/upload_form"); ?>
+    <?php
+    $messages = $this->session->flashdata('messages');
+    if (!empty($messages)) {
+        echo "<h2>" . $messages . "</h2>";
+    }
+    ?>
+
+    <table border="0">
+        <tr>
+            <td width="150" nowrap>Unit Kerja</td>
+            <td width="10" nowrap>:</td>
+            <td><?= form_dropdown('unitkerja', $unitkerja, set_value('unitkerja')); ?></td>
+            <td><?= form_error('unitkerja', '<div class="error">', '</div>'); ?></td>
+        </tr>
+        <tr>
+            <td width="150" nowrap>Kode Proyek</td>
+            <td width="10" nowrap>:</td>
+            <td><?= form_dropdown('kode_proyek', $kode_proyek, set_value('kode_proyek')); ?></td>
+            <td><?= form_error('kode_proyek', '<div class="error">', '</div>'); ?></td>
+        </tr>
+        <tr>
+            <td width="150" nowrap>Browse File Excel</td>
+            <td width="10" nowrap>:</td>
+            <td><input type="file" name="master_sbdaya" value="<?= set_value('master_sbdaya'); ?>"/></td>
+            <td><?= form_error('master_sbdaya', '<div class="error">', '</div>'); ?></td>
+        </tr>
+        <tr>
+            <td></td>
+            <td></td>
+            <td><input type="submit" name="submit" value="Simpan" /></td>
+            <td></td>
+        </tr>
+    </table>
+    
+    
+    <table id="list2"></table>
+    <div id="pager2"></div>
+    
+    <?= form_close(); ?>
+    
+</div>
+

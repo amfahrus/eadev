@@ -1,0 +1,785 @@
+@charset "utf-8";
+/* CSS Document */
+
+html, body, .fh
+	{
+	padding: 0px;
+	margin: 0px;
+	height: 100%;
+	overflow: hidden;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	color: #333;
+	}
+
+body
+	{
+	min-width: 760px;
+	min-height: 275px;
+	}
+
+a
+	{
+	text-decoration: none;
+	color: #0033FF;
+	}
+	
+.container
+	{
+	background: #dbdbdb;
+	position: relative;
+	}
+	
+	.header
+		{
+		position: absolute;
+		background: url(images/topbg.png) repeat-x;
+		height: 60px;
+		top: 0px;
+		left: 0px;
+		width: 100%;
+		z-index: 10;
+		}
+		
+		.sidetog
+			{
+			background: url(images/sidetog.png) no-repeat;
+			position: absolute;
+			top: 75px;
+			left: -1px;
+			height: 32px;
+			width: 7px;
+			display: none;
+			cursor: pointer;
+			}
+		
+		.topnav
+			{
+			position: absolute;
+			right: 10px;
+			top: 0px;
+			float: left;
+			}
+			
+			.topnav div.name
+				{
+				float: left;
+				border-right: 1px solid #b9b9b9;
+				margin-right: 10px;
+				}
+			
+			.topnav div.name span
+				{
+				float: left;
+				padding: 18px 10px;
+				padding-right: 20px;
+				border-right: 1px solid #f6f6f6;
+				}
+			
+			.topnav a
+				{
+				float: left;
+				display: block;
+				margin-top: 12px;
+				margin-left: 10px;
+				text-decoration: none;
+				padding-right: 6px;
+				color: #333;
+				background: url(images/buttonbg.png) no-repeat right -27px;
+				}
+				
+				.topnav a:hover
+					{
+					background-position: right -81px;					
+					}
+				
+				.topnav a.nleft
+					{
+					padding-right: 0px;
+					}
+				
+				.topnav a.nmid
+					{
+					padding-right: 0px;
+					border-left: 1px solid #b9b9b9;
+					margin-left: 0px;
+					}
+				
+				.topnav a.nright
+					{
+					border-left: 1px solid #b9b9b9;
+					margin-left: 0px;
+					}
+
+				.topnav a span
+					{
+					display: block;
+					padding: 6px;
+					padding-right: 0px;
+					float: left;
+					background: url(images/buttonbg.png) no-repeat left top;
+					cursor: pointer;
+					}
+					
+					.topnav a:hover span
+						{
+						background-position: left -54px;
+						}
+				
+					.topnav a.nleft span
+						{
+						padding-right: 6px;						
+						}
+						
+					.topnav a.nmid span
+						{
+						background-position: -6px top;
+						padding-right: 6px;
+						}
+						
+						.topnav a.nmid:hover span
+							{
+							background-position: -6px -54px;
+							}						
+
+					.topnav a.nright span
+						{
+						background-position: -6px top;
+						}
+
+						.topnav a.nright:hover span
+							{
+							background-position: -6px -54px;
+							}						
+
+				
+				.topnav span i
+					{
+					float: left;
+					display: block;
+					margin-left: 5px;
+					font-style: normal;
+					}
+				
+				.topnav span b
+					{
+					font-weight: normal;
+					width: 16px;
+					height: 16px;
+					display: block;
+					margin-bottom: -1px;
+					float: left;
+					}
+				
+					b.email {background: url(images/email.png) no-repeat;}						 
+					b.user {background: url(images/user_suit.png) no-repeat;}						
+					b.forum {background: url(images/forum.png) no-repeat;}						
+					b.logout {background: url(images/out.png) no-repeat;}
+					b.expand {background: url(images/expand.png) no-repeat;}
+					b.contract {background: url(images/contract.png) no-repeat;}
+					b.record {background: url(images/application_form.png) no-repeat;}
+					b.table {background: url(images/application_view_list.png) no-repeat;}
+					b.item_new {background: url(images/page_white_add.png) no-repeat;}
+					b.item_edit {background: url(images/page_white_edit.png) no-repeat;}
+					b.item_delete {background: url(images/page_white_delete.png) no-repeat;}
+					b.insert_line {background: url(images/add.png) no-repeat;}
+					b.remove_line {background: url(images/close.png) no-repeat;}
+					b.item_cancel {background: url(images/cancel.png) no-repeat;}
+					b.item_save {background: url(images/disk.png) no-repeat;}
+					b.item_undo {background: url(images/arrow_undo.png) no-repeat;}
+					b.item_find {background: url(images/magnifier.png) no-repeat;}
+					b.item_first {background: url(images/resultset_first.png) no-repeat;}
+					b.item_prev {background: url(images/resultset_previous.png) no-repeat;}
+					b.item_next {background: url(images/resultset_next.png) no-repeat;}
+					b.item_last {background: url(images/resultset_last.png) no-repeat;}
+					b.item_print {background: url(images/printer.png) no-repeat;}
+					b.item_approve {background: url(images/check.gif) no-repeat;}
+					b.item_disapprove {background: url(images/cross.png) no-repeat;}
+					b.item_ref {background: url(images/book.png) no-repeat;}
+					b.item_affected {background: url(images/table_relationship.png) no-repeat;}
+					b.calendar {background: url(images/calendar.png) no-repeat;}
+					
+		
+		.logo
+			{
+			position: absolute;
+			height: 40px;
+			width: 200px;
+			top: 5px;
+			left: 5px;
+			background: url(../../media/company.png) no-repeat 10px center;
+			}
+		
+		.bodytop
+			{
+			width: auto;
+			position: relative;
+			border: 1px solid #b9b9b9;
+			background: #ebebeb url(images/tabbg.png) repeat-x;
+			top: 58px;
+			height: 59px;
+			margin-left: 255px;
+			margin-right: 5px;
+			}
+			
+		.body_sub
+			{
+			width: 99%;
+			height: 24px;
+			overflow: hidden;
+			padding: 4px;
+			}
+
+	.body
+		{
+		position: relative;
+		top: 119px;
+		width: auto;
+		margin-left: 255px;
+		margin-right: 5px;
+		border: 1px solid #b9b9b9;
+		border-top: 0px;
+		height: 85%;
+		overflow: auto;
+		background: #fff;
+		}
+		
+			.body h2
+				{
+				color: #555;
+				margin: 0px;
+				margin-bottom: 0px;
+				font-weight: bold;
+				font-size: 16px;
+				padding: 5px;
+				border-top: 0px dotted #ccc;
+				background: url(images/up.png) no-repeat right;
+				}
+		
+			.body_tabs
+				{
+				width: 100%;
+				height: 27px;
+				overflow: hidden;
+				position: relative;
+				}
+				
+				.tab_slide
+					{
+					position: absolute;
+					width: 1000%;
+					top: 0px;
+					left: 17px;
+					}
+					
+					.tab_pane
+						{
+						float: left;
+						}
+				
+				a.tab
+					{
+					position: relative;
+					float: left;
+					border-right: 1px solid #b9b9b9;
+					border-left: 1px solid #b9b9b9;
+					margin-left: -1px;
+					margin-bottom: 1px;
+					}
+				
+				a.tab span
+					{
+					display: block;
+					float: left;
+					padding: 5px 10px;
+					padding-left: 25px;
+					padding-right: 20px;
+					padding-bottom: 5px;
+					border: 1px solid #fff;
+					border-bottom: 0px;
+					height: 15px;
+					color: #000;
+					cursor: pointer;
+					background-repeat: no-repeat;
+					background-position: 5px 3px;
+					}
+					
+					a.tab:hover
+						{
+						background: url(images/topbg.png) repeat-x 0px -20px;
+						}
+					
+						.tabdroplist a:hover
+							{
+							background: url(images/topbg.png) repeat-x 0px -20px;
+							border: 1px solid #b9b9b9;
+							}
+							
+							.tabdroplist a:hover span
+								{
+								border: 1px solid #eee;
+								}
+					
+					.body_tabs a.sel
+						{
+						}	
+						
+					.body_tabs a.sel span, a.tab.sel:hover span
+						{
+						padding-bottom: 5px;
+						border-bottom: 1px solid #ebebeb;
+						background-color: #ebebeb;
+						}
+					
+					a.tab_close
+						{
+						width: 20px;
+						height: 26px;
+						position: relative;
+						float: left;
+						display: block;
+						left: -20px;
+						top: 0px;
+						margin-right: -20px;
+						background: none;
+						cursor: pointer;
+						}
+						
+					a.tab_close:hover
+						{
+						background: url(images/x.png) no-repeat center;
+						}
+					
+
+		
+		.content
+			{
+			margin: 10px;
+			}
+	
+	.sidenav_sub
+		{
+		padding: 4px;
+		}
+	
+	.toolbar b
+		{
+		font-weight: normal;
+		width: 16px;
+		display: block;
+		float: left;
+		height: 16px;
+		margin-bottom: -1px;
+		background-repeat: no-repeat;
+		background-position: 0px 0px;
+		}
+		
+		.disabled b
+			{
+			opacity: 0.2;
+			cursor: default;
+			}
+		
+	.toolbar i
+		{
+		font-style: normal;
+		display: block;
+		float: left;
+		height: 12px;
+		padding-top: 1px;
+		padding-bottom: 3px;
+		vertical-align: bottom;
+		margin-bottom: -1px;
+		font-size: 11px;
+		cursor: pointer;
+		}
+		
+		.toolbar label.opt
+			{
+			}	
+	
+	.toolbar a
+		{
+			margin-right: 10px;
+			margin-bottom: 5px;
+			float: left; 
+			display: block;
+			color: #111;
+			padding-right: 4px;
+			background: url(images/buttonbg2.png) no-repeat right -24px;			
+		}
+		
+		.toolbar a.nleft, a.nleftntoggled
+			{
+			background-position: left top;
+			margin-right: 0px;
+			border-right: 1px solid #b9b9b9;
+			}
+			
+		.toolbar a.nmid,.toolbar a.nmidntoggled
+			{
+			background-position: -4px top;
+			margin-right: 0px;
+			border-right: 1px solid #b9b9b9;
+			}
+			
+		.toolbar a:hover, .toolbar a.nrightntoggled
+			{
+			background-position: right -72px;
+			}		
+
+			.toolbar a.nleft:hover, .toolbar a.nleftntoggled, .toolbar a.nleftntoggled:hover
+				{
+				background-position: left -48px;
+				}		
+
+			.toolbar a.nmid:hover, .toolbar a.nmid.ntoggled, .toolbar a.nmid.ntoggled:hover
+				{
+				background-position: left -48px;
+				}		
+		
+		.toolbar a span
+			{
+				float: left;
+				display: block;
+				padding: 4px;
+				height: 15px;
+				overflow: hidden;
+				padding-bottom: 5px;
+				padding-right: 0px;
+				background: url(images/buttonbg2.png) no-repeat 0px 0px;
+				cursor: pointer;
+			}
+			
+			.toolbar a.nright span
+				{
+				background-position: -4px 0px;
+				}			
+
+			.toolbar a.nmid span
+				{
+				background-position: -4px 0px;
+				}	
+			
+			.toolbar a:hover span, .toolbar a.nleftntoggled span, .toolbar a.nleftntoggled:hover span
+				{
+				background-position: 0px -48px;
+				}
+				
+			.toolbar a.nmid:hover span, .toolbar a.nmidntoggled span, .toolbar a.nmidntoggled:hover span
+				{
+				background-position: -4px -48px;				
+				}
+
+			.toolbar a.nright:hover span, .toolbar a.nrightntoggled span, .toolbar a.nrightntoggled:hover span
+				{
+				background-position: -4px -48px;
+				}				
+	
+	.sidenav
+		{
+		position: absolute;
+		top: 119px;
+		border: 1px solid #b9b9b9;
+		border-top: 0px;
+		left: 5px;
+		width: 243px;
+		height: 85%;
+		overflow: auto;
+		background: #fff;
+		}
+		
+		.subside
+			{
+			width: auto;
+			overflow: hidden;
+			}
+		
+		.togsub
+			{
+			display: none;
+			}
+		
+		.sidenav a
+			{
+			display: block;
+			padding: 8px;
+			background: url(images/topbg.png) repeat-x 0px -18px;
+			color: #111;
+			font-size: 11px;
+			border-bottom: 1px solid #ccc;
+			cursor: pointer;
+			white-space: nowrap;
+			}
+
+		.sidenav a:hover
+			{
+			background-position: 0px 0px
+			}
+		
+			.sidenav a span
+				{
+				display: block;
+				height: 16px;
+				padding-left: 20px;
+				background-repeat: no-repeat;
+				}
+			
+			.togsub a
+				{
+				background: none;
+				border-bottom: 0px;
+				}
+				
+				.togsub.s2 a
+					{
+					padding-left: 25px;
+					}				
+				
+				.togsub a:hover
+					{
+					background: #eee;
+					}			
+		
+		.closenav
+			{
+			position: absolute;
+			width: 10px;
+			height: 10px;
+			right: 5px;
+			top: 10px;
+			cursor: pointer;
+			background: url(images/x.png) no-repeat;
+			}
+			
+			a.subtabs, a.goleft, a.goright
+				{
+				position: absolute;
+				width: 16px;
+				height: 26px;
+				right: 0px;
+				top: 0px;
+				background: url(images/tabbg.png) repeat-x;
+				border-bottom: 1px solid #b9b9b9;				
+				}
+				
+				a.goleft { left: 0px; right: auto; border-right: 1px solid #b9b9b9; }
+				a.goright { right: 16px; border-left: 1px solid #b9b9b9; border-right: 1px solid #b9b9b9; }
+				
+				a.subtabs:hover
+					{
+					}
+					
+				a.subtabs b, a.goleft b, a.goright b
+					{
+					display: block;
+					width: 16px;
+					height: 26px;
+					background: url(images/down.png) no-repeat center;
+					}
+					
+					a.goleft b { background-image: url(images/left.png); }
+					a.goright b { background-image: url(images/right.png); }
+				
+				.tabdroplist
+					{
+					position: absolute;
+					right: 0px;
+					top: 26px;
+					float: left;
+					background: #ececec;
+					border-left: 1px solid #b9b9b9;
+					border-bottom: 1px solid #b9b9b9;
+					padding: 3px;
+					display: none;
+					overflow: auto;
+					}
+					
+					.tabdroplist a
+						{
+						display: block;
+						clear: both;
+						color: #111;
+						border: 1px solid #ececec;
+						}
+						
+					.tabdroplist a span
+						{
+						cursor: pointer;
+						display: block;
+						padding: 6px 20px;
+						padding-left: 30px;
+						background-repeat: no-repeat;
+						background-position: 5px center;
+						border: 1px solid #ececec;
+						white-space: nowrap;
+						}	
+		
+		.sidenav_title
+			{
+			font-weight: bold;
+			padding: 6px;
+			}
+		
+		.sidenavtop
+			{
+			width: 243px;
+			position: absolute;
+			border: 1px solid #b9b9b9;
+			background: #ebebeb url(images/tabbg.png) repeat-x;
+			top: 58px;
+			left: 5px;
+			height: 59px;
+			}
+	
+	.footer
+		{
+		background: #dbdbdb;
+		position: absolute;
+		height: 40px;
+		width: 100%;
+		bottom: 0px;
+		left: 0px;
+		}
+		
+		.clogo
+			{
+			background: #dbdbdb url(images/comunion.png) no-repeat center;
+			position: absolute;
+			right: 6px;
+			top: 0px;
+			width:  157px;
+			height: 40px;
+			}
+		
+		.copyright
+			{
+			padding: 10px;
+			}
+			
+/* fields */
+
+		.tlabel
+			{
+			vertical-align: top;
+			text-align: right;
+			color: #888;
+			width: 120px;
+			padding: 0px;
+			padding-right: 10px;
+			}
+
+		.tfield
+			{
+			padding: 0px;
+			width: 240px;
+			vertical-align: top;
+			}
+
+			.tfw
+				{
+				border: 1px solid #ccc;
+				vertical-align: top;
+				padding: 4px;
+				font-family: Arial, Helvetica, sans-serif;
+				font-size: 12px;
+				margin: 0px;
+				width: 160px;
+				}
+				
+				textarea.tfw
+					{
+					overflow: auto;
+					}
+				
+			.sfw
+				{
+				width: 160px;
+				}
+				
+		button.button
+			{
+			border: 0px;
+			margin: 0px;
+			padding: 0px;
+			background: none;
+			vertical-align: text-top;
+			}
+			
+			.button span.bt1
+				{
+				display: block;
+				float: left;
+				padding-right: 4px;
+				background: url(images/buttonbg2.png) no-repeat right -24px;
+				}
+			
+			.button span.bt2
+				{
+				float: left;
+				display: block;
+				height: 17px;
+				padding: 4px;
+				padding-bottom: 3px;
+				padding-right: 0px;
+				background: url(images/buttonbg2.png) no-repeat left top;				
+				}
+			
+			.button b
+				{
+				width: 16px;
+				height: 16px;
+				display: block;
+				}
+
+.ptabs
+	{
+	height: 27px;
+	position: relative;
+	z-index: 2;
+	}
+				
+.ptabs a
+	{
+	float: left;
+	padding: 6px 10px;
+	height: 14px;
+	color: #000;
+	background: #ddd url(images/topbg.png) repeat-x;
+	border: 1px solid #ccc;
+	border-bottom: 0px;
+	margin-right: 1px;
+	font-weight: bold;
+	font-size: 11px;
+	text-transform: uppercase;
+	}
+
+	.ptabs a:hover
+		{
+		background: #fff;
+		height: 15px;
+		}	
+
+	.ptabs a.sel
+		{
+		background: #fff;
+		height: 15px;
+		}
+		
+	.fpane
+		{
+		border: 1px solid #ccc;
+		}
+		
+	.dpane
+		{
+		margin-bottom: 10px;
+		}
+		
+		
+		.topfields
+			{
+			padding: 10px;
+			background: #999;			
+			color: #fff;
+			}								

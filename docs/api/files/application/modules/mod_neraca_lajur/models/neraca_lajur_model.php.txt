@@ -1,0 +1,126 @@
+<?php
+
+class neraca_lajur_model extends CI_Model {
+
+    protected $_table;
+    protected $_countAll;
+
+    public function __construct() {
+        parent::__construct();
+        $this->config->load('database_tables', TRUE);
+        $this->_table = $this->config->item('database_tables');
+    }
+
+    function getAll($id_proyek,$periode) {
+        
+		// modified by asep on 22/05/2014 14:56
+		
+		$query = $this->db->query("select * from getneracalajur($id_proyek,$periode)");
+		
+        $tmp_result = array();
+		
+		foreach($query->result_array() as $row){
+			$tmp_result[] = array(
+						'id'	 		=> $row['nl_nomor'],
+						'kode'	 		=> $row['nl_kode'],
+						'uraian' 		=> $row['nl_uraian'],
+						'debet_lalu'	=> $row['nl_debet_lalu'],
+						'kredit_lalu'	=> $row['nl_kredit_lalu'],
+						'debet_skrg'	=> $row['nl_debet_skrg'],
+						'kredit_skrg'	=> $row['nl_kredit_skrg'],
+						'debet_akhir'	=> $row['nl_debet_akhir'],
+						'kredit_akhir'	=> $row['nl_kredit_akhir'],
+						'debet_lr'		=> $row['nl_debet_lr'],
+						'kredit_lr'		=> $row['nl_kredit_lr'],
+						'debet_nrc'		=> $row['nl_debet_nrc'],
+						'kredit_nrc'	=> $row['nl_kredit_nrc']
+					);
+		}	
+			
+		//echo "<pre>";
+		//print_r($tmp_result);
+		//echo "</pre>";	
+        return $tmp_result;
+	}	
+
+    public function countAll() {
+        return $this->_countAll;
+    }
+	
+	public function getAllExcel($id_proyek,$periode) {
+        // modified by asep on 22/05/2014 14:56
+		
+		$query = $this->db->query("select * from getneracalajur($id_proyek,$periode)");
+		
+        $tmp_result = array();
+		
+		foreach($query->result_array() as $row){
+			$tmp_result[] = array(
+						'kode'	 		=> $row['nl_kode'],
+						'uraian' 		=> $row['nl_uraian'],
+						'debet_lalu'	=> myFormatMoney($row['nl_debet_lalu']),
+						'kredit_lalu'	=> myFormatMoney($row['nl_kredit_lalu']),
+						'debet_skrg'	=> myFormatMoney($row['nl_debet_skrg']),
+						'kredit_skrg'	=> myFormatMoney($row['nl_kredit_skrg']),
+						'debet_akhir'	=> myFormatMoney($row['nl_debet_akhir']),
+						'kredit_akhir'	=> myFormatMoney($row['nl_kredit_akhir']),
+						'debet_lr'		=> myFormatMoney($row['nl_debet_lr']),
+						'kredit_lr'		=> myFormatMoney($row['nl_kredit_lr']),
+						'debet_nrc'		=> myFormatMoney($row['nl_debet_nrc']),
+						'kredit_nrc'	=> myFormatMoney($row['nl_kredit_nrc'])
+					);
+		}	
+			
+		//echo "<pre>";
+		//print_r($tmp_result);
+		//echo "</pre>";	
+        return $tmp_result;
+    }
+    
+    public function getBulan() {
+
+        $this->db->select('b.id_library, b.nama_library');
+        $this->db->from($this->_table['library'] . ' a');
+        $this->db->join($this->_table['library'] . ' b', 'b.parent = a.id_library', 'left outer');
+        $this->db->where('a.id_library = 15');
+        $this->db->order_by('b.id_library', 'asc');
+        $query = $this->db->get();
+
+        $temp_result = array();
+        $i = 1;
+        foreach ($query->result_array() as $row) {
+            $temp_result[$i++] = $row['nama_library'];
+        }
+        return $temp_result;
+    }
+	
+	public function getProyekName($id) {
+
+        $this->db->select('nama_proyek');
+        $this->db->from('list_proyek_v');
+        $this->db->where('id_proyek', $id);
+        $query = $this->db->get();
+
+        $result = '';
+        foreach ($query->result_array() as $row) {
+            $result = $row['nama_proyek'];
+        }
+        return $result;
+    }
+	
+	public function getPeriodName($id) {
+
+        $this->db->select('period_name');
+        $this->db->from('perioda_v');
+        $this->db->where('period_id', $id);
+        $query = $this->db->get();
+
+        $result = '';
+        foreach ($query->result_array() as $row) {
+            $result = $row['period_name'];
+        }
+        return $result;
+    }
+	
+}
+

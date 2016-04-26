@@ -1,0 +1,6 @@
+@charset "utf-8";
+/* CSS Document */
+
+.outer { position: relative; }
+.middle { position: absolute; top: 50%; }
+.inner { position: relative; top: -50%; }

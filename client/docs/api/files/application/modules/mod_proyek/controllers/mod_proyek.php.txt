@@ -1,0 +1,297 @@
+<?php
+
+if (!defined('BASEPATH'))
+    exit('No direct script access allowed');
+
+class mod_proyek extends CI_Controller {
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->library('myauth');
+        if (!$this->myauth->logged_in()) {
+            if (IS_AJAX) {
+                header('HTTP/1.1 401 Unauthorized');
+                exit;
+            } else {
+                $this->session->set_userdata('redir', current_url());
+                redirect('mod_user/user_auth');
+            }
+        }
+        $this->myauth->has_role();
+        $this->load->model('proyek_model');
+        $this->load->model('dataset_db');
+        $this->load->library("searchform");
+    }
+
+    public function index() {
+        $this->toolbar->create_toolbar();
+        $this->toolbar->cGroupButton();
+        $this->toolbar->addLink("", "btn tooltips", base_url() . "mod_proyek", "form_proyek_list", "cus-application", "List Proyek", "tooltip", "right");
+        $this->toolbar->addLink("", "btn tooltips", base_url() . "mod_proyek/form_proyek_add", "form_proyek_new", "cus-application-form-add", "Tambah Proyek", "tooltip", "right");
+        $this->toolbar->addLink("", "btn tooltips", "#", "form_proyek_delete", "cus-application-form-delete", "Delete Proyek", "tooltip", "right");
+        $this->toolbar->eGroupButton();
+        $data['toolbars'] = $this->toolbar->generate();
+
+        $DataModel = array(
+            array(
+                'text' => 'Nama Proyek',
+                'value' => 'text:LOWER(nama_proyek)',
+                'type' => 'text',
+                'callBack' => '',
+                'ops' => array("like", "not like", "=", "!=")
+            ),
+            array(
+                'text' => 'Kode Proyek',
+                'value' => 'text:LOWER(kode_proyek)',
+                'type' => 'text',
+                'callBack' => '',
+                'ops' => array("like", "not like", "=", "!=")
+            ),
+            array(
+                'text' => 'Kategori Proyek',
+                'value' => 'text:LOWER(nama_kategoriproyek)',
+                'type' => 'text',
+                'callBack' => '',
+                'ops' => array("like", "not like", "=", "!=")
+            ),
+            array(
+                'text' => 'Jenis Proyek',
+                'value' => 'text:LOWER(jenisproyek_name)',
+                'type' => 'text',
+                'callBack' => '',
+                'ops' => array("like", "not like", "=", "!=")
+            ),
+            array(
+                'text' => 'Group Proyek',
+                'value' => 'text:LOWER(nama_subunit)',
+                'type' => 'text',
+                'callBack' => '',
+                'ops' => array("like", "not like", "=", "!=")
+            )
+        );
+
+        $defaultvalue = array();
+
+        $data['searchform'] = $this->searchform->setMultiSearch("true")->setDataModel($DataModel)->setDefaultValue($defaultvalue)->genSearchForm();
+        $data['ptitle'] = "Manajemen Proyek";
+        $data['navs'] = $this->dataset_db->buildNav(0);
+        $tabs = $this->session->userdata('tabs');
+        if (!$tabs)
+            $tabs = array();
+        $tabs['mod_proyek'] = $this->dataset_db->getModule('mod_proyek');
+        $this->session->set_userdata('tabs', $tabs);
+        $data['current_tab'] = $tabs['mod_proyek']['link'];
+        $data['content'] = $this->load->view('proyek_list', $data, true);
+        $this->load->vars($data);
+        $this->load->view('default_view');
+    }
+
+    public function proyek_json() {
+
+        $search = isset($_GET['_search']) ? $_GET['_search'] : 'false';
+        $page = $this->input->post('page');
+        $limit = $this->input->post('rows');
+        $sidx = $this->input->post('sidx');
+        $sord = $this->input->post('sord');
+
+        $page = !empty($page) ? $page : 1;
+        $limit = !empty($limit) ? $limit : 10;
+        $sidx = !empty($sidx) ? $sidx : "nama_proyek";
+        $sord = !empty($sord) ? $sord : "asc";
+
+        if (strtolower($search) == "true") {
+            $cols = isset($_GET['cols']) ? $_GET['cols'] : '';
+            $ops = isset($_GET['ops']) ? $_GET['ops'] : '';
+            $vals = isset($_GET['vals']) ? $_GET['vals'] : '';
+
+            $cari = array();
+            for ($x = 0; $x < count($cols); $x++) {
+                $cari[$x]['cols'] = $cols[$x];
+                $cari[$x]['ops'] = $ops[$x];
+                $cari[$x]['vals'] = $vals[$x];
+            }
+        } else {
+            $cari = "";
+        }
+
+        $offset = ($page * $limit) - $limit;
+        $offset = ($offset < 0) ? 0 : $offset;
+
+        if (!$sidx)
+            $sidx = 1;
+        $query = $this->proyek_model->getAll($limit, $offset, $sidx, $sord, $cari, $search);
+        $count = $this->proyek_model->countAll();
+
+        if ($count > 0) {
+            $total_pages = ceil($count / $limit);
+        } else {
+            $total_pages = 0;
+        }
+
+        if ($page > $total_pages)
+            $page = $total_pages;
+
+        $responce['page'] = $page;
+        $responce['total'] = $total_pages;
+        $responce['records'] = $count;
+        $i = 0;
+        foreach ($query as $row) {
+            $responce['rows'][$i]['id'] = $row['id_proyek'];
+            $responce['rows'][$i]['cell'] = array($row['id_proyek'], $row['nama_subunit'], $row['nama_kategoriproyek'], $row['jenisproyek_name'], $row['kode_proyek'], $row['nama_proyek'], '<a class="link_edit" href="' . base_url() . 'mod_proyek/proyek_view/' . $row['id_proyek'] . '"><img src="' . base_url() . 'media/edit.png" /></a>');
+            $i++;
+        }
+        echo json_encode($responce);
+    }
+
+    public function form_proyek_add() {
+        $this->toolbar->create_toolbar();
+        $this->toolbar->cGroupButton();
+        $this->toolbar->addLink("", "btn tooltips", base_url() . "mod_proyek", "form_proyek_list", "cus-application", "List Proyek", "tooltip", "right");
+        $this->toolbar->addLink("", "btn tooltips", base_url() . "mod_proyek/form_proyek_add", "form_proyek_new", "cus-application-form-add", "Tambah Proyek", "tooltip", "right");
+        $this->toolbar->addLink("", "btn tooltips", "#", "form_proyek_delete", "cus-application-form-delete", "Delete Proyek", "tooltip", "right");
+        $this->toolbar->eGroupButton();
+        $data['toolbars'] = $this->toolbar->generate();
+
+        $data['ptitle'] = "Manajemen Proyek / Add Proyek";
+        $data['id_katproyek'] = $this->proyek_model->getKatProyek();
+        $data['id_subunitkerja'] = $this->proyek_model->getSubUnitKerja();
+        $data['jenisproyek_id'] = $this->proyek_model->getJenisProyek();
+
+        $data['navs'] = $this->dataset_db->buildNav(0);
+        $tabs = $this->session->userdata('tabs');
+        if (!$tabs)
+            $tabs = array();
+        $tabs['mod_proyek'] = $this->dataset_db->getModule('mod_proyek');
+        $this->session->set_userdata('tabs', $tabs);
+        $data['current_tab'] = $tabs['mod_proyek']['link'];
+        $data['content'] = $this->load->view('proyek_add', $data, true);
+        $this->load->vars($data);
+        $this->load->view('default_view');
+    }
+
+    public function proyek_add() {
+
+        $this->form_validation->set_rules('kode_proyek', 'Kode Proyek', 'required|xss_clean|callback_check_kode_proyek|max_length[7]');
+        $this->form_validation->set_rules('id_katproyek', 'Kategori Proyek', 'required|xss_clean');
+        $this->form_validation->set_rules('jenisproyek_id', 'Jenis Proyek', 'required|xss_clean');
+        $this->form_validation->set_rules('id_subunitkerja', 'Unit Kerja', 'required|xss_clean');
+        $this->form_validation->set_rules('nama_proyek', 'Nama Proyek', 'required|xss_clean|max_length[64]');
+
+        if ($this->form_validation->run() == TRUE) {
+            $field["create_id"] = $this->session->userdata('ba_user_id');
+            $field["create_time"] = $this->myauth->timestampIndo();
+            $field["kode_proyek"] = $this->input->post("kode_proyek");
+            $field["id_katproyek"] = $this->input->post("id_katproyek");
+            $field["id_subunitkerja"] = $this->input->post("id_subunitkerja");
+            $field["nama_proyek"] = $this->input->post("nama_proyek");
+            $field["proyek_jenisproyek_id"] = $this->input->post("jenisproyek_id");
+
+            $insert = $this->proyek_model->insert($field);
+
+            if ($insert) {
+                $data['success'] = '<p>Data Berhasil Disimpan</p>';
+                $json['json'] = $data;
+                $this->load->view('template/ajax', $json);
+            } else {
+                $data['error'] = '<p>Data Gagal Disimpan</p>';
+                $json['json'] = $data;
+                $this->load->view('template/ajax', $json);
+            }
+        } else {
+            $data['error'] = validation_errors();
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        }
+    }
+
+    public function proyek_delete() {
+        $id = $this->input->post('id');
+        $this->proyek_model->delete($id);
+    }
+
+    public function check_kode_proyek($kode_proyek) {
+        if ($this->proyek_model->check_kode_proyek($kode_proyek)) {
+            $this->form_validation->set_message('check_kode_proyek', "Kode Proyek " . $kode_proyek . " Telah Terdaftar, Pilih Yang Lain.");
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    public function proyek_view($id = false) {
+        try {
+            if ($id) {
+                $check_id = $this->proyek_model->cekId($id);
+                if ($check_id) {
+                    $this->toolbar->create_toolbar();
+                    $this->toolbar->cGroupButton();
+                    $this->toolbar->addLink("", "btn tooltips", base_url() . "mod_proyek", "form_proyek_list", "cus-application", "List Proyek", "tooltip", "right");
+                    $this->toolbar->addLink("", "btn tooltips", base_url() . "mod_proyek/form_proyek_add", "form_proyek_new", "cus-application-form-add", "Tambah Proyek", "tooltip", "right");
+                    $this->toolbar->addLink("", "btn tooltips", "#", "form_proyek_delete", "cus-application-form-delete", "Delete Proyek", "tooltip", "right");
+                    $this->toolbar->eGroupButton();
+                    $data['toolbars'] = $this->toolbar->generate();
+                    
+                    $data['ptitle'] = "Manajemen Proyek / Edit Proyek";
+                    $data['detail'] = $this->proyek_model->getProyek($id);
+                    $data['jenisproyek_id'] = $this->proyek_model->getJenisProyek();
+                    $data['id_katproyek'] = $this->proyek_model->getKatProyek();
+                    $data['id_subunitkerja'] = $this->proyek_model->getSubUnitKerja();
+                    $data['navs'] = $this->dataset_db->buildNav(0);
+                    $tabs = $this->session->userdata('tabs');
+                    if (!$tabs)
+                        $tabs = array();
+                    $tabs['mod_proyek'] = $this->dataset_db->getModule('mod_proyek');
+                    $this->session->set_userdata('tabs', $tabs);
+                    $data['current_tab'] = $tabs['mod_proyek']['link'];
+                    $data['content'] = $this->load->view('proyek_edit', $data, true);
+                    $this->load->vars($data);
+                    $this->load->view('default_view');
+                } else {
+                    throw new Exception('Error');
+                }
+            } else {
+                throw new Exception('Error');
+            }
+        } catch (Exception $ex) {
+            redirect('forbidden');
+        }
+    }
+
+    public function proyek_edit() {
+
+        $this->form_validation->set_rules('id', 'id', 'required|xss_clean');
+        $this->form_validation->set_rules('kode_proyek', 'Kode Proyek', 'required|xss_clean|max_length[7]');
+        $this->form_validation->set_rules('id_katproyek', 'Kategori Proyek', 'required|xss_clean');
+        $this->form_validation->set_rules('id_subunitkerja', 'Unit Kerja', 'required|xss_clean');
+        $this->form_validation->set_rules('nama_proyek', 'Nama Proyek', 'required|xss_clean|max_length[64]');
+        $this->form_validation->set_rules('jenisproyek_id', 'Jenis Proyek', 'required|xss_clean');
+
+        if ($this->form_validation->run() == TRUE) {
+            $id = $this->input->post("id");
+            $field["proyek_jenisproyek_id"] = $this->input->post("jenisproyek_id");
+            $field["kode_proyek"] = $this->input->post("kode_proyek");
+            $field["id_katproyek"] = $this->input->post("id_katproyek");
+            $field["id_subunitkerja"] = $this->input->post("id_subunitkerja");
+            $field["nama_proyek"] = $this->input->post("nama_proyek");
+            $field["modify_id"] = $this->session->userdata('ba_user_id');
+            $field["modify_time"] = $this->myauth->timestampIndo();
+            $update = $this->proyek_model->update($field, $id);
+            if ($update) {
+                $data['success'] = '<p>Data Berhasil Disimpan</p>';
+                $data['redirect'] = base_url() . 'mod_proyek';
+                $json['json'] = $data;
+                $this->load->view('template/ajax', $json);
+            } else {
+                $data['error'] = '<p>Data Gagal Disimpan</p>';
+                $json['json'] = $data;
+                $this->load->view('template/ajax', $json);
+            }
+        } else {
+            $data['error'] = validation_errors();
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        }
+    }
+
+}
+

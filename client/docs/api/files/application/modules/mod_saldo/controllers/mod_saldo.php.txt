@@ -1,0 +1,353 @@
+<?php
+
+class mod_saldo extends CI_Controller {
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->library('myauth');
+        if (!$this->myauth->logged_in()) {
+            $this->session->set_userdata('redir', current_url());
+            redirect('mod_user/user_auth');
+        }
+        $this->myauth->has_role();
+        $this->load->model('saldo_model');
+        $this->load->model('dataset_db');
+        $this->load->library("searchform");
+        $this->_userconfig = $this->dataset_db->getUserconfig($this->session->userdata('ba_user_id'));
+    }
+
+    public function index() {
+		$this->toolbar->create_toolbar();
+        $this->toolbar->cGroupButton();
+        $this->toolbar->addLink("", "btn tooltips", base_url() . "mod_saldo", "form_saldo_list", "cus-table", "Saldo Perkiraan", "tooltip", "right");
+        $this->toolbar->addLink("", "btn tooltips", "javascript:void(0);", "form_saldo_excel", "cus-page-excel", "To Excel", "tooltip", "right");
+        $this->toolbar->eGroupButton();
+        $data['toolbar'] = $this->toolbar->generate();
+        
+        $DataModel = array(
+            array(
+                'text' => 'Nama Proyek',
+                'value' => 'text:LOWER(nama_proyek)',
+                'type' => 'text',
+                'callBack' => '',
+                'ops' => array("like", "not like", "=", "!=")
+            ),
+            array(
+                'text' => 'Nama Periode',
+                'value' => 'text:LOWER(period_name)',
+                'type' => 'text',
+                'callBack' => '',
+                'ops' => array("like", "not like", "=", "!=")
+            )
+        );
+
+        $defaultvalue = array();
+		$data['searchform'] = $this->searchform->setMultiSearch("true")->setDataModel($DataModel)->setDefaultValue($defaultvalue)->genSearchForm();
+        
+        $data['ptitle'] = "Saldo Perkiraan";
+        $data['navs'] = $this->dataset_db->buildNav(0);
+        $tabs = $this->session->userdata('tabs');
+        if (!$tabs)
+            $tabs = array();
+		
+        $data['op_yearperiode'] = $this->dataset_db->getPeriodeYear();
+        $tabs['mod_saldo'] = $this->dataset_db->getModule('mod_saldo');
+        $this->session->set_userdata('tabs', $tabs);
+        $data['current_tab'] = $tabs['mod_saldo']['link'];
+        $data['content'] = $this->load->view('periode_list', $data, true);
+        $this->load->vars($data);
+        $this->load->view('default_view');
+    }
+
+	public function periode_json() {
+		$search = isset($_GET['_search']) ? $_GET['_search'] : 'false';
+        $page = $this->input->post('page');
+        $limit = $this->input->post('rows');
+        $sidx = $this->input->post('sidx');
+        $sord = $this->input->post('sord');
+
+        $page = !empty($page) ? $page : 1;
+        $limit = !empty($limit) ? $limit : 10;
+        $sidx = !empty($sidx) ? $sidx : "a.period_start";
+        $sord = !empty($sord) ? $sord : "asc";
+
+
+        if (strtolower($search) == "true") {
+            $cols = isset($_GET['cols']) ? $_GET['cols'] : '';
+            $ops = isset($_GET['ops']) ? $_GET['ops'] : '';
+            $vals = isset($_GET['vals']) ? $_GET['vals'] : '';
+
+            $cari = array();
+            for ($x = 0; $x < count($cols); $x++) {
+                $cari[$x]['cols'] = $cols[$x];
+                $cari[$x]['ops'] = $ops[$x];
+                $cari[$x]['vals'] = $vals[$x];
+            }
+        } else {
+            $cari = "";
+        }
+
+        $offset = ($page * $limit) - $limit;
+        $offset = ($offset < 0) ? 0 : $offset;
+
+        if (!$sidx)
+            $sidx = 1;
+
+        $query = $this->saldo_model->getPeriodAll($limit, $offset, $sidx, $sord, $cari, $search);
+        $count = $this->saldo_model->countAll();
+
+		if ($count > 0) {
+            $total_pages = ceil($count / $limit);
+        } else {
+            $total_pages = 0;
+        }
+
+        if ($page > $total_pages)
+            $page = $total_pages;
+
+        $responce['page'] = $page;
+        $responce['total'] = $total_pages;
+        $responce['records'] = $count;
+        $i = 0;
+        foreach ($query as $key => $row) {
+            $responce['rows'][$i]['id'] = $row['id'];
+            $responce['rows'][$i]['cell'] = array(
+            '<a class="tooltips" title="" data-placement="bottom" data-toggle="tooltip" data-original-title="Edit Saldo Perkiraan" href="' . base_url() . 'mod_saldo/edit/' . $row['id'] . '"><img src="' . base_url() . 'media/edit.png" /></a>',
+            $row['nama_proyek'], $row['period_name'], $row['period_start'], $row['period_end']);
+            $i++;
+        }
+        echo json_encode($responce);
+    }
+	
+	public function edit($id = false) {
+        try {
+            if ($id) {
+                if (isInteger($id)) {
+                    $this->toolbar->create_toolbar();
+                    $this->toolbar->cGroupButton();
+                    $this->toolbar->addLink("", "btn tooltips", base_url() . "mod_saldo", "form_saldo_list", "cus-table", "Saldo Perkiraan", "tooltip", "right");
+					$this->toolbar->addLink("", "btn tooltips", "javascript:void(0);", "form_saldo_excel", "cus-page-excel", "To Excel", "tooltip", "right");
+					$this->toolbar->addLink("", "btn tooltips", "#", "form_saldo_delete", "cus-application-form-delete", "Clear Import Data", "tooltip", "right");
+                    $this->toolbar->eGroupButton();
+                    $this->toolbar->cGroupButton();
+                    $this->toolbar->addButton("", "btn tooltips", "button", "form_saldo_save", "form_saldo_save", "cus-accept", "Simpan Saldo", "tooltip", "right");
+                    $this->toolbar->eGroupButton();
+                    $data['toolbars'] = $this->toolbar->generate();
+                    $DataModel = array(
+						array(
+							'text' => 'Nama Akun',
+							'value' => 'text:LOWER(nmperkiraan)',
+							'type' => 'text',
+							'callBack' => '',
+							'ops' => array("like", "not like", "=", "!=")
+						),
+						array(
+							'text' => 'Kode Akun',
+							'value' => 'text:LOWER(kdperkiraan)',
+							'type' => 'text',
+							'callBack' => '',
+							'ops' => array("like", "not like", "=", "!=")
+						)
+					);
+
+					$defaultvalue = array();
+					$data['searchform'] = $this->searchform->setMultiSearch("true")->setDataModel($DataModel)->setDefaultValue($defaultvalue)->genSearchForm();
+					$row = $this->saldo_model->getPeriodeByKey($id)->row();
+					$data["id"] = $id;
+					$data["period"] = $row->period_name;
+					$data["key"] = $row->period_key;
+                    $data['ptitle'] = "Import Data";
+                    $data['navs'] = $this->dataset_db->buildNav(0);
+                    $tabs = $this->session->userdata('tabs');
+                    if (!$tabs)
+                        $tabs = array();
+                    $tabs['mod_saldo'] = $this->dataset_db->getModule('mod_saldo');
+                    $this->session->set_userdata('tabs', $tabs);
+                    $data['current_tab'] = $tabs['mod_saldo']['link'];
+                    $data['content'] = $this->load->view('saldo_list', $data, true);
+                    $this->load->vars($data);
+                    $this->load->view('default_view');
+                } else {
+                    redirect('forbidden');
+                }
+            } else {
+                redirect('forbidden');
+            }
+        } catch (Exception $ex) {
+            redirect('forbidden');
+        }
+    }
+	
+    public function saldo_json($key) {
+		$search = isset($_GET['_search']) ? $_GET['_search'] : 'false';
+        $page = $this->input->post('page');
+        $limit = $this->input->post('rows');
+        $sidx = $this->input->post('sidx');
+        $sord = $this->input->post('sord');
+
+        $page = !empty($page) ? $page : 1;
+        $limit = !empty($limit) ? $limit : 10;
+        $sidx = !empty($sidx) ? $sidx : "kdperkiraan";
+        $sord = !empty($sord) ? $sord : "asc";
+
+
+        if (strtolower($search) == "true") {
+            $cols = isset($_GET['cols']) ? $_GET['cols'] : '';
+            $ops = isset($_GET['ops']) ? $_GET['ops'] : '';
+            $vals = isset($_GET['vals']) ? $_GET['vals'] : '';
+
+            $cari = array();
+            for ($x = 0; $x < count($cols); $x++) {
+                $cari[$x]['cols'] = $cols[$x];
+                $cari[$x]['ops'] = $ops[$x];
+                $cari[$x]['vals'] = $vals[$x];
+            }
+        } else {
+            $cari = "";
+        }
+
+        $offset = ($page * $limit) - $limit;
+        $offset = ($offset < 0) ? 0 : $offset;
+
+        if (!$sidx)
+            $sidx = 1;
+
+        $query = $this->saldo_model->getAll($limit, $offset, $sidx, $sord, $cari, $search, $key);
+        $count = $this->saldo_model->countAll();
+
+		if ($count > 0) {
+            $total_pages = ceil($count / $limit);
+        } else {
+            $total_pages = 0;
+        }
+
+        if ($page > $total_pages)
+            $page = $total_pages;
+
+        $responce['page'] = $page;
+        $responce['total'] = $total_pages;
+        $responce['records'] = $count;
+        $i = 0;
+        foreach ($query as $key => $row) {
+            $responce['rows'][$i]['id'] = $row['id'];
+            $responce['rows'][$i]['cell'] = array($row['id'], $row['check'], $row['kdperkiraan'], $row['nmperkiraan'], $row['rupiah']);
+            $i++;
+        }
+        echo json_encode($responce);
+    }
+    
+    public function save($key) {
+        $this->form_validation->set_rules("id", "ID", "required|xss_clean");
+        $this->form_validation->set_rules("rupiah", "Rupiah", "required|xss_clean");
+
+        if ($this->form_validation->run() == TRUE) {
+            $kdperkiraan = $this->input->post("id");
+            $rupiah = $this->input->post("rupiah");
+            $row = $this->saldo_model->getPeriodeByKey($key)->row();
+            $tanggal = $row->period_start;
+			$saldo = array(
+						'importsaldo_id_proyek' 	=> $this->_userconfig["kolom2"],
+						'importsaldo_period_key' 	=> $key,
+						'importsaldo_tanggal'		=> $tanggal,
+						'importsaldo_kdperkiraan'	=> $kdperkiraan,
+						'importsaldo_rupiah'		=> $rupiah
+			);
+			if($this->saldo_model->getImportSaldoByArray(array('importsaldo_id_proyek' => $this->_userconfig["kolom2"], 'importsaldo_period_key' => $key, 'importsaldo_kdperkiraan' => $kdperkiraan))) {
+				$sql = $this->saldo_model->update($saldo, array('importsaldo_id_proyek' => $this->_userconfig["kolom2"], 'importsaldo_period_key' => $key, 'importsaldo_kdperkiraan' => $kdperkiraan));
+            } else {
+				$sql = $this->saldo_model->insert($saldo);
+			}
+            if ($sql) {
+                $data['success'] = "<p>Data Berhasil Dimasukan</p>";
+                $json['json'] = $data;
+                $this->load->view('template/ajax', $json);
+            } else {
+                $data['error'] = "<p>Data Gagal Dimasukan</p>";
+                $json['json'] = $data;
+                $this->load->view('template/ajax', $json);
+            }
+        } else {
+            $data['error'] = validation_errors();
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        }
+    }
+    
+    public function import($key) {
+        //$this->form_validation->set_rules("id", "ID", "required|xss_clean");
+        $this->form_validation->set_rules('jq_checkbox_added', 'Jurnal', 'required');
+
+        if ($this->form_validation->run() == TRUE) {
+            //$id = $this->input->post("id");
+            $kdperkiraan = $this->input->post("jq_checkbox_added");
+
+            $data = $this->saldo_model->getSaldo($key, $kdperkiraan);
+
+            $jurnal = array();
+            if (!empty($data) AND is_array($data)) {
+				// masuk melalui jurnal approve
+                /*foreach ($data as $row) {
+                    $nobukti = $this->saldo_model->getNobukti($row["importsaldo_tanggal"], $this->_userconfig["kolom2"], "K");
+                    $gid = $this->saldo_model->getGid($this->_userconfig["kolom2"]);
+					$jurnal[] = array(
+						'tanggal' => $row["importsaldo_tanggal"],
+						'nobukti' => $nobukti,
+						'kdperkiraan' => $row["importsaldo_kdperkiraan"],
+						'id_proyek' => $this->_userconfig["kolom2"],
+						'kdnasabah' => "",
+						'keterangan' => "Import Saldo",
+						'dk' => $row["importsaldo_dk"],
+						'rupiah' => ($row["importsaldo_dk"] == "D" ) ? $row["importsaldo_rupiah"] : $row["importsaldo_rupiah"] * -1,
+						'create_id' => $this->session->userdata('ba_user_id'),
+						'create_time' => $this->myauth->timestampIndo(),
+						'gid' => $gid,
+						'tempjurnal_jenisjurnal_id' => 3 //cut off saldo apa jenisnya???
+					);
+                }
+
+                $this->saldo_model->savetotempjurnal($jurnal);*/
+                
+                // masuk langsung ke table trial balance
+                foreach ($data as $row) {
+                    $jurnal[] = array(
+						'id_proyek' => $this->_userconfig["kolom2"],
+						'trialbal_period_key' => $row["importsaldo_period_key"],
+						'trialbal_kdperkiraan' => $row["importsaldo_kdperkiraan"],
+						'trialbal_beginning' => $row["importsaldo_rupiah"],
+						'trialbal_ending' => $row["importsaldo_rupiah"],
+						'trialbal_credits' => 0,
+						'trialbal_debits' => 0,
+						'trialbal_dirty' => 't'
+					);
+                }
+				/*if($this->saldo_model->getTrialbalByArray(array('id_proyek' => $this->_userconfig["kolom2"], 'trialbal_period_key' => $key),$kdperkiraan)) {
+					$sql = $this->saldo_model->edittotrialbal($jurnal, array('id_proyek' => $this->_userconfig["kolom2"], 'trialbal_period_key' => $key), $kdperkiraan);
+				} else {
+					$sql = $this->saldo_model->savetotrialbal($jurnal);
+				}*/	
+                $sql = $this->saldo_model->savetotrialbal($jurnal);
+            }
+
+
+            echo "<pre><tt>";
+            print_r($data);
+            echo "</tt></pre>";
+
+            echo "<pre><tt>";
+            print_r($jurnal);
+            echo "</tt></pre>";
+            
+            echo "<pre><tt>";
+            echo $sql?'OK':'BAD';
+            echo "</tt></pre>";
+
+//            echo json_encode($data);
+        } else {
+            $data['error'] = validation_errors();
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        }
+    }
+    
+}
+

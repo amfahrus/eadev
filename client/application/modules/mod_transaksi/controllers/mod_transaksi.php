@@ -1,0 +1,545 @@
+<?php
+
+class mod_transaksi extends CI_Controller {
+
+    public function __construct() {
+        parent::__construct();
+        session_start();
+
+        $this->load->library('myauth');
+        if (!$this->myauth->logged_in()) {
+            $this->session->set_userdata('redir', current_url());
+            redirect('mod_user/user_auth');
+        }
+        $this->myauth->has_role();
+        $this->load->model('transaksi_model');
+        $this->load->model('dataset_db');
+        $this->load->library('search_form');
+    }
+
+    public function index_lama() {
+        $toolbar_config = array(
+            'item_new' => base_url() . 'mod_transaksi/transaksi_add',
+            'item_delete' => '#',
+            'table' => base_url() . 'mod_transaksi'
+        );
+
+        $param = array(
+            'text:LOWER(nama_subunit)' => array(
+                'title' => 'Sub Unit',
+                'ops' => array('=', 'LIKE')
+            ),
+            'text:LOWER(is_proyek)' => array(
+                'title' => 'Is Proyek',
+                'ops' => array('=', 'LIKE')
+            ),
+            'text:LOWER(keterangan)' => array(
+                'title' => 'Keterangan',
+                'ops' => array('=', 'LIKE')
+            )
+        );
+        $data['search_form'] = $this->search_form->searchForm($param);
+        $data['toolbar'] = $this->search_form->toolbars($toolbar_config);
+        $data['ptitle'] = "Transaksi";
+        $data['level'] = $this->session->userdata('ba_unit_kerja');
+        $data['unitkerja'] = $this->dataset_db->getSubUnitkerja();
+        $data['navs'] = $this->dataset_db->buildNav(0);
+        $tabs = $this->session->userdata('tabs');
+        if (!$tabs)
+            $tabs = array();
+        $tabs['mod_transaksi'] = $this->dataset_db->getModule('mod_transaksi');
+        $this->session->set_userdata('tabs', $tabs);
+        $data['current_tab'] = $tabs['mod_transaksi']['link'];
+        $data['content'] = $this->load->view('transaksi', $data, true);
+        $this->load->vars($data);
+        $this->load->view('default_view');
+    }
+
+    public function add() {
+        $this->form_validation->set_rules('tanggal', 'Tanggal', 'required');
+        $this->form_validation->set_rules('debet', 'Debet', 'required');
+        $this->form_validation->set_rules('kredit', 'Kredit', 'required');
+        $this->form_validation->set_rules('keterangan', 'Keterangan', 'required');
+        $this->form_validation->set_rules('nilai', 'Nilai', 'required');
+
+        if ($this->form_validation->run() == TRUE) {
+            $debet = $this->input->post("debet");
+            $kode_debet = $this->input->post("kode_debet");
+            $label_debet = $this->input->post("label_debet");
+            $debet_kodealat = $this->input->post("debet_kodealat");
+            $debet_rekanan = $this->input->post("debet_rekanan");
+            $debet_sumberdaya = $this->input->post("debet_sumberdaya");
+            $debet_volume = $this->input->post("debet_volume");
+            $debet_workitem = $this->input->post("debet_workitem");
+            $id = $this->input->post("id");
+            $keterangan = $this->input->post("keterangan");
+            $kredit = $this->input->post("kredit");
+            $kode_kredit = $this->input->post("kode_kredit");
+            $label_kredit = $this->input->post("label_kredit");
+            $kredit_kodealat = $this->input->post("kredit_kodealat");
+            $kredit_rekanan = $this->input->post("kredit_rekanan");
+            $kredit_sumberdaya = $this->input->post("kredit_sumberdaya");
+            $kredit_volume = $this->input->post("kredit_volume");
+            $kredit_workitem = $this->input->post("kredit_workitem");
+            $nilai = $this->input->post("nilai");
+
+//            $subunit_proyek = $this->input->post("subunit_proyek");
+//            $tanggal = $this->input->post("tanggal");
+//            $tipe_transaksi = $this->input->post("tipe_transaksi");
+//            $unitkerja = $this->input->post("unitkerja");
+
+            if (!isset($_SESSION["transaksi"])) {
+                $_SESSION["transaksi"] = array();
+            }
+
+            if (!empty($id)) {
+                $_SESSION["transaksi"][$id]["debet"] = $debet;
+                $_SESSION["transaksi"][$id]["label_debet"] = $label_debet;
+                $_SESSION["transaksi"][$id]["debet_kodealat"] = $debet_kodealat;
+                $_SESSION["transaksi"][$id]["debet_rekanan"] = $debet_rekanan;
+                $_SESSION["transaksi"][$id]["debet_sumberdaya"] = $debet_sumberdaya;
+                $_SESSION["transaksi"][$id]["debet_volume"] = $debet_volume;
+                $_SESSION["transaksi"][$id]["debet_workitem"] = $debet_workitem;
+                $_SESSION["transaksi"][$id]["kredit"] = $kredit;
+                $_SESSION["transaksi"][$id]["label_kredit"] = $label_kredit;
+                $_SESSION["transaksi"][$id]["kredit_kodealat"] = $kredit_kodealat;
+                $_SESSION["transaksi"][$id]["kredit_rekanan"] = $kredit_rekanan;
+                $_SESSION["transaksi"][$id]["kredit_sumberdaya"] = $kredit_sumberdaya;
+                $_SESSION["transaksi"][$id]["kredit_volume"] = $kredit_volume;
+                $_SESSION["transaksi"][$id]["kredit_workitem"] = $kredit_workitem;
+                $_SESSION["transaksi"][$id]["nilai"] = $nilai;
+                $_SESSION["transaksi"][$id]["keterangan"] = $keterangan;
+
+                $data['success'] = '<p>Data Berhasil DiEdit</p>';
+                $json['json'] = $data;
+                $this->load->view('template/ajax', $json);
+            } else {
+                if (count($_SESSION["transaksi"]) < 1) {
+                    $_SESSION["transaksi"][1]["debet"] = $debet;
+                    $_SESSION["transaksi"][1]["label_debet"] = $label_debet;
+                    $_SESSION["transaksi"][1]["debet_kodealat"] = $debet_kodealat;
+                    $_SESSION["transaksi"][1]["debet_rekanan"] = $debet_rekanan;
+                    $_SESSION["transaksi"][1]["debet_sumberdaya"] = $debet_sumberdaya;
+                    $_SESSION["transaksi"][1]["debet_volume"] = $debet_volume;
+                    $_SESSION["transaksi"][1]["debet_workitem"] = $debet_workitem;
+                    $_SESSION["transaksi"][1]["kredit"] = $kredit;
+                    $_SESSION["transaksi"][1]["label_kredit"] = $label_kredit;
+                    $_SESSION["transaksi"][1]["kredit_kodealat"] = $kredit_kodealat;
+                    $_SESSION["transaksi"][1]["kredit_rekanan"] = $kredit_rekanan;
+                    $_SESSION["transaksi"][1]["kredit_sumberdaya"] = $kredit_sumberdaya;
+                    $_SESSION["transaksi"][1]["kredit_volume"] = $kredit_volume;
+                    $_SESSION["transaksi"][1]["kredit_workitem"] = $kredit_workitem;
+                    $_SESSION["transaksi"][1]["nilai"] = $nilai;
+                    $_SESSION["transaksi"][1]["keterangan"] = $keterangan;
+
+                    $data['success'] = '<p>Data Berhasil Ditambahkan</p>';
+                    $json['json'] = $data;
+                    $this->load->view('template/ajax', $json);
+                } else {
+                    $x = count($_SESSION["transaksi"]) + 1;
+                    $_SESSION["transaksi"][$x]["debet"] = $debet;
+                    $_SESSION["transaksi"][$x]["label_debet"] = $label_debet;
+                    $_SESSION["transaksi"][$x]["debet_kodealat"] = $debet_kodealat;
+                    $_SESSION["transaksi"][$x]["debet_rekanan"] = $debet_rekanan;
+                    $_SESSION["transaksi"][$x]["debet_sumberdaya"] = $debet_sumberdaya;
+                    $_SESSION["transaksi"][$x]["debet_volume"] = $debet_volume;
+                    $_SESSION["transaksi"][$x]["debet_workitem"] = $debet_workitem;
+                    $_SESSION["transaksi"][$x]["kredit"] = $kredit;
+                    $_SESSION["transaksi"][$x]["label_kredit"] = $label_kredit;
+                    $_SESSION["transaksi"][$x]["kredit_kodealat"] = $kredit_kodealat;
+                    $_SESSION["transaksi"][$x]["kredit_rekanan"] = $kredit_rekanan;
+                    $_SESSION["transaksi"][$x]["kredit_sumberdaya"] = $kredit_sumberdaya;
+                    $_SESSION["transaksi"][$x]["kredit_volume"] = $kredit_volume;
+                    $_SESSION["transaksi"][$x]["kredit_workitem"] = $kredit_workitem;
+                    $_SESSION["transaksi"][$x]["nilai"] = $nilai;
+                    $_SESSION["transaksi"][$x]["keterangan"] = $keterangan;
+
+                    $data['success'] = '<p>Data Berhasil Ditambahkan</p>';
+                    $json['json'] = $data;
+                    $this->load->view('template/ajax', $json);
+                }
+            }
+        } else {
+            $data['error'] = validation_errors();
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        }
+    }
+
+    public function sess2json() {
+
+        if (!empty($_SESSION["transaksi"]) and is_array($_SESSION["transaksi"])) {
+            $transaksi = $_SESSION["transaksi"];
+            $jurnal = array();
+            $debet = 0;
+            $kredit = 0;
+
+            foreach ($transaksi as $key => $value) {
+                $jurnal[] = array(
+                    'id' => $key,
+                    "check" => "<input type=\"checkbox\" value=\"" . $key . "\" name=\"jq_checkbox_added[]\" class=\"jq_checkbox_added\" />",
+                    'kode_perkiraan' => $value["debet"],
+                    'nama_perkiraan' => $value["debet"],
+                    'perkiraan' => $value["label_debet"],
+                    'kode_nasabah' => $value["debet_rekanan"],
+                    'nama_nasabah' => $value["debet_rekanan"],
+                    'nasabah' => $value["debet_rekanan"] . " - " . $value["debet_rekanan"],
+                    'kode_sbdaya' => $value["debet_sumberdaya"],
+                    'nama_sbdaya' => $value["debet_sumberdaya"],
+                    'sbdaya' => $value["debet_sumberdaya"] . " - " . $value["debet_sumberdaya"],
+                    'volume' => $value["debet_volume"],
+                    'debet' => $value["nilai"],
+                    'kredit' => "0",
+                    'uraian' => $value["keterangan"]
+                );
+
+                $jurnal[] = array(
+                    'id' => $key,
+                    "check" => "",
+                    'kode_perkiraan' => $value["kredit"],
+                    'nama_perkiraan' => $value["kredit"],
+                    'perkiraan' => $value["label_kredit"],
+                    'kode_nasabah' => $value["kredit_rekanan"],
+                    'nama_nasabah' => $value["kredit_rekanan"],
+                    'nasabah' => $value["kredit_rekanan"] . " - " . $value["kredit_rekanan"],
+                    'kode_sbdaya' => $value["kredit_sumberdaya"],
+                    'nama_sbdaya' => $value["kredit_sumberdaya"],
+                    'sbdaya' => $value["kredit_sumberdaya"] . " - " . $value["kredit_sumberdaya"],
+                    'volume' => $value["kredit_volume"],
+                    'debet' => "0",
+                    'kredit' => $value["nilai"],
+                    'uraian' => $value["keterangan"]
+                );
+
+                $debet = $debet + $value["nilai"];
+                $kredit = $kredit + $value["nilai"];
+            }
+
+            $responce['page'] = 1;
+            $responce['total'] = 1;
+            $responce['records'] = 1;
+            $responce['userdata']['debet'] = $debet;
+            $responce['userdata']['kredit'] = $kredit;
+            $responce['userdata']['volume'] = 'Totals:';
+            $responce['userdata']['uraian'] = $debet - $kredit;
+
+            $i = 0;
+            foreach ($jurnal as $row) {
+                $responce['rows'][$i]['id'] = $row['id'];
+                $responce['rows'][$i]['cell'] = array(
+                    "",
+                    $row['id'],
+                    $row['check'],
+                    $row['kode_perkiraan'],
+                    $row['nama_perkiraan'],
+                    $row['kode_nasabah'],
+                    $row['nama_nasabah'],
+                    $row['kode_sbdaya'],
+                    $row['nama_sbdaya'],
+                    $row['perkiraan'],
+                    $row['nasabah'],
+//                    $row['sbdaya'],
+//                    $row['volume'],
+                    $row['debet'],
+                    $row['kredit'],
+                    $row['uraian']
+                );
+                $i++;
+            }
+            echo json_encode($responce);
+        } else {
+            $responce['page'] = 1;
+            $responce['total'] = 1;
+            $responce['records'] = 1;
+            $responce['userdata']['debet'] = 0;
+            $responce['userdata']['kredit'] = 0;
+            $responce['userdata']['volume'] = 'Totals:';
+            $responce['userdata']['uraian'] = 0;
+            echo json_encode($responce);
+        }
+    }
+
+    public function getDataProyek() {
+        $this->form_validation->set_rules("id", "id", "required|xss_clean");
+        if ($this->form_validation->run() == TRUE) {
+            $id = $this->input->post("id");
+            $proyek = $this->dataset_db->getDataProyek($id);
+            foreach ($proyek as $key => $value) {
+                echo "<option value=\"" . $key . "\">" . $value . "</option>";
+            }
+        }
+    }
+
+    public function getSessionId() {
+        $this->form_validation->set_rules('id', 'id', 'required');
+        if ($this->form_validation->run() == TRUE) {
+            if (!empty($_SESSION["transaksi"]) and is_array($_SESSION["transaksi"])) {
+                $id = $this->input->post("id");
+                $transaksi = $_SESSION["transaksi"];
+                $transaksi[$id]["id"] = $id;
+                $data['success'] = '<p>Data Berhasil Dibaca</p>';
+                $data['record'] = $transaksi[$id];
+                $json['json'] = $data;
+                $this->load->view('template/ajax', $json);
+            }
+        } else {
+            $data['error'] = '<p>Data Gagal Dibaca</p>';
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        }
+    }
+
+    public function deletejurnal() {
+        $this->form_validation->set_rules('id', 'id', 'required');
+        if ($this->form_validation->run() == TRUE) {
+            if (!empty($_SESSION["transaksi"]) and is_array($_SESSION["transaksi"])) {
+                $id = $this->input->post("id");
+                $transaksi = $_SESSION["transaksi"];
+
+                $x = 1;
+                $jurnal = array();
+                foreach ($transaksi as $key => $value) {
+                    if (!in_array($key, $id)) {
+                        $jurnal[$x] = array(
+                            'debet' => $value["debet"],
+                            'label_debet' => $value["label_debet"],
+                            'debet_kodealat' => $value["debet_kodealat"],
+                            'debet_rekanan' => $value["debet_rekanan"],
+                            'debet_sumberdaya' => $value["debet_sumberdaya"],
+                            'debet_volume' => $value["debet_volume"],
+                            'debet_workitem' => $value["debet_workitem"],
+                            'kredit' => $value["kredit"],
+                            'label_kredit' => $value["label_kredit"],
+                            'kredit_kodealat' => $value["kredit_kodealat"],
+                            'kredit_rekanan' => $value["kredit_rekanan"],
+                            'kredit_sumberdaya' => $value["kredit_sumberdaya"],
+                            'kredit_volume' => $value["kredit_volume"],
+                            'kredit_workitem' => $value["kredit_workitem"],
+                            'nilai' => $value["nilai"],
+                            'keterangan' => $value["keterangan"]
+                        );
+                        $x++;
+                    }
+                }
+                unset($_SESSION["transaksi"]);
+                if (!empty($jurnal) and is_array($jurnal)) {
+                    $_SESSION["transaksi"] = $jurnal;
+                }
+
+                $data['success'] = '<p>Data Berhasil Dihapus</p>';
+                $json['json'] = $data;
+                $this->load->view('template/ajax', $json);
+            }
+        } else {
+            $data['error'] = '<p>Harap Pilih Data Yang Akan Dihapus ... !</p>';
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        }
+    }
+
+    public function cleanTransaksi() {
+        unset($_SESSION["transaksi"]);
+    }
+
+    public function addJurnal() {
+        $this->form_validation->set_rules("tanggal", "tanggal", "required");
+        $this->form_validation->set_rules("tipe_transaksi", "tipe_transaksi", "required");
+        $this->form_validation->set_rules("kode_proyek", "kode_proyek", "required");
+
+        if ($this->form_validation->run() == TRUE) {
+            if (!empty($_SESSION["transaksi"]) and is_array($_SESSION["transaksi"])) {
+                $transaksi = $_SESSION["transaksi"];
+                $tanggal = $this->input->post("tanggal");
+                $tipe_transaksi = $this->input->post("tipe_transaksi");
+                $id_proyek = $this->input->post("kode_proyek");
+
+                $jurnal = array();
+                $debet = 0;
+                $kredit = 0;
+                $nobukti = $this->transaksi_model->getNobukti($tanggal, $id_proyek, $tipe_transaksi);
+
+                foreach ($transaksi as $key => $value) {
+                    $gid = $this->transaksi_model->getGid();
+                    $jurnal[] = array(
+                        'tanggal' => $tanggal,
+                        'nobukti' => $nobukti,
+                        'kdperkiraan' => $value["debet"],
+                        'id_proyek' => $id_proyek,
+                        'kdnasabah' => $value["debet_rekanan"],
+                        'keterangan' => $value["keterangan"],
+                        'dk' => "D",
+                        'rupiah' => $value["nilai"],
+                        'create_id' => $this->session->userdata('ba_user_id'),
+                        'create_time' => $this->myauth->timestampIndo(),
+                        'gid' => $gid
+                    );
+                    $jurnal[] = array(
+                        'tanggal' => $tanggal,
+                        'nobukti' => $nobukti,
+                        'kdperkiraan' => $value["kredit"],
+                        'id_proyek' => $id_proyek,
+                        'kdnasabah' => $value["kredit_rekanan"],
+                        'keterangan' => $value["keterangan"],
+                        'dk' => "K",
+                        'rupiah' => $value["nilai"],
+                        'create_id' => $this->session->userdata('ba_user_id'),
+                        'create_time' => $this->myauth->timestampIndo(),
+                        'gid' => $gid
+                    );
+
+                    $debet = $debet + $value["nilai"];
+                    $kredit = $kredit + $value["nilai"];
+                }
+
+                if (($kredit === $debet)) {
+                    $this->db->insert_batch('tbl_tempjurnal', $jurnal);
+                    $this->cleanTransaksi();
+
+                    $data['success'] = '<p>Data Berhasil Disimpan</p>';
+                    $json['json'] = $data;
+                    $this->load->view('template/ajax', $json);
+                } else {
+                    $data['error'] = '<p>Data Gagal Disimpan</p>';
+                    $json['json'] = $data;
+                    $this->load->view('template/ajax', $json);
+                }
+//                echo "<pre>";
+//                print_r($jurnal);
+//                echo "</pre>";
+            } else {
+                $data['error'] = '<p>Data Gagal Disimpan</p>';
+                $json['json'] = $data;
+                $this->load->view('template/ajax', $json);
+            }
+        } else {
+            $data['error'] = validation_errors();
+            $json['json'] = $data;
+            $this->load->view('template/ajax', $json);
+        }
+    }
+
+    public function getnobukti() {
+        $nobukti = $this->transaksi_model->getNobukti('2012-01-01', 'kp', 'm');
+        print_r($nobukti);
+    }
+
+    public function index() {
+        $toolbar_config = array(
+            'item_new' => base_url() . 'mod_transaksi/transaksi_add',
+            'item_delete' => '#',
+            'table' => base_url() . 'mod_transaksi'
+        );
+
+        $param = array(
+            'text:LOWER(nama_subunit)' => array(
+                'title' => 'Sub Unit',
+                'ops' => array('=', 'LIKE')
+            ),
+            'text:LOWER(is_proyek)' => array(
+                'title' => 'Is Proyek',
+                'ops' => array('=', 'LIKE')
+            ),
+            'text:LOWER(keterangan)' => array(
+                'title' => 'Keterangan',
+                'ops' => array('=', 'LIKE')
+            )
+        );
+        $data['search_form'] = $this->search_form->searchForm($param);
+        $data['toolbar'] = $this->search_form->toolbars($toolbar_config);
+        $data['ptitle'] = "Transaksi";
+        $data['level'] = $this->session->userdata('ba_unit_kerja');
+        $data['unitkerja'] = $this->dataset_db->getSubUnitkerja();
+        $data['navs'] = $this->dataset_db->buildNav(0);
+        $tabs = $this->session->userdata('tabs');
+        if (!$tabs)
+            $tabs = array();
+        $tabs['mod_transaksi'] = $this->dataset_db->getModule('mod_transaksi');
+        $this->session->set_userdata('tabs', $tabs);
+        $data['current_tab'] = $tabs['mod_transaksi']['link'];
+        $data['content'] = $this->load->view('transaksi_form', $data, true);
+        $this->load->vars($data);
+        $this->load->view('default_view');
+    }
+
+    public function test() {
+        echo "hai";
+
+        if (!empty($_SESSION["transaksi"]) and is_array($_SESSION["transaksi"])) {
+            $transaksi = $_SESSION["transaksi"];
+
+            echo "<pre>";
+            print_r($transaksi);
+            echo "</pre>";
+        }
+    }
+
+    public function voucher_in() {
+        $toolbar_config = array(
+            'item_new' => base_url() . 'mod_transaksi/transaksi_add',
+            'item_delete' => '#',
+            'table' => base_url() . 'mod_transaksi'
+        );
+
+        $data['toolbar'] = $this->search_form->toolbars($toolbar_config);
+        $data['ptitle'] = "Transaksi";
+        $data['level'] = $this->session->userdata('ba_unit_kerja');
+        $data['unitkerja'] = $this->dataset_db->getSubUnitkerja();
+        $data['navs'] = $this->dataset_db->buildNav(0);
+        $tabs = $this->session->userdata('tabs');
+        if (!$tabs)
+            $tabs = array();
+        $tabs['mod_transaksi'] = $this->dataset_db->getModule('mod_transaksi');
+        $this->session->set_userdata('tabs', $tabs);
+        $data['current_tab'] = $tabs['mod_transaksi']['link'];
+        $data['content'] = $this->load->view('voucher_in', $data, true);
+        $this->load->vars($data);
+        $this->load->view('default_view');
+    }
+
+    public function voucher_out() {
+        $toolbar_config = array(
+            'item_new' => base_url() . 'mod_transaksi/transaksi_add',
+            'item_delete' => '#',
+            'table' => base_url() . 'mod_transaksi'
+        );
+
+        $data['toolbar'] = $this->search_form->toolbars($toolbar_config);
+        $data['ptitle'] = "Transaksi";
+        $data['level'] = $this->session->userdata('ba_unit_kerja');
+        $data['unitkerja'] = $this->dataset_db->getSubUnitkerja();
+        $data['navs'] = $this->dataset_db->buildNav(0);
+        $tabs = $this->session->userdata('tabs');
+        if (!$tabs)
+            $tabs = array();
+        $tabs['mod_transaksi'] = $this->dataset_db->getModule('mod_transaksi');
+        $this->session->set_userdata('tabs', $tabs);
+        $data['current_tab'] = $tabs['mod_transaksi']['link'];
+        $data['content'] = $this->load->view('voucher_out', $data, true);
+        $this->load->vars($data);
+        $this->load->view('default_view');
+    }
+
+    public function memorial() {
+        $toolbar_config = array(
+            'item_new' => base_url() . 'mod_transaksi/transaksi_add',
+            'item_delete' => '#',
+            'table' => base_url() . 'mod_transaksi'
+        );
+
+        $data['toolbar'] = $this->search_form->toolbars($toolbar_config);
+        $data['ptitle'] = "Transaksi";
+        $data['level'] = $this->session->userdata('ba_unit_kerja');
+        $data['unitkerja'] = $this->dataset_db->getSubUnitkerja();
+        $data['navs'] = $this->dataset_db->buildNav(0);
+        $tabs = $this->session->userdata('tabs');
+        if (!$tabs)
+            $tabs = array();
+        $tabs['mod_transaksi'] = $this->dataset_db->getModule('mod_transaksi');
+        $this->session->set_userdata('tabs', $tabs);
+        $data['current_tab'] = $tabs['mod_transaksi']['link'];
+        $data['content'] = $this->load->view('memorial', $data, true);
+        $this->load->vars($data);
+        $this->load->view('default_view');
+    }
+
+}

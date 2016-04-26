@@ -1,0 +1,217 @@
+<?php
+
+class mod_importdbf extends CI_Controller {
+
+    public function __construct() {
+        parent::__construct();
+        session_start();
+        $this->load->library('myauth');
+        if (!$this->myauth->logged_in()) {
+            $this->session->set_userdata('redir', current_url());
+            redirect('mod_user/user_auth');
+        }
+        $this->myauth->has_role();
+        $this->load->model('dataset_db');
+        $this->load->model('importdbf_model');
+        $this->load->library('search_form');
+        $this->load->library('dbf_class');
+        $this->load->library("searchform");
+    }
+
+    public function index() {
+        $param = array(
+            array(
+                'form_importdbf_list' => array(
+                    'tag' => 'a',
+                    'class' => 'btn',
+                    'link' => base_url() . 'mod_importdbf',
+                    'event' => '',
+                    'icon' => 'cus-application'
+                ),
+                'form_importdbf_new' => array(
+                    'tag' => 'a',
+                    'class' => 'btn',
+                    'link' => base_url() . 'mod_importdbf/form_importdbf_add',
+                    'event' => '',
+                    'icon' => 'cus-application-form-add'
+                ),
+                'form_importdbf_delete' => array(
+                    'tag' => 'a',
+                    'class' => 'btn',
+                    'link' => '#',
+                    'event' => '',
+                    'icon' => 'cus-application-form-delete'
+                )
+            )
+        );
+        $data['toolbars'] = $this->search_form->toolbar($param);
+
+        $DataModel = array(
+            array(
+                'text' => 'Nama Proyek',
+                'value' => 'text:LOWER(nama_proyek)',
+                'type' => 'text',
+                'callBack' => '',
+                'ops' => array("like", "not like", "=", "!=")
+            )
+        );
+
+        $defaultvalue = array();
+
+        $data['searchform'] = $this->searchform->setMultiSearch("true")->setDataModel($DataModel)->setDefaultValue($defaultvalue)->genSearchForm();
+        $data['ptitle'] = "Import Data";
+        $data['navs'] = $this->dataset_db->buildNav(0);
+        $tabs = $this->session->userdata('tabs');
+        if (!$tabs)
+            $tabs = array();
+        $tabs['mod_importdbf'] = $this->dataset_db->getModule('mod_importdbf');
+        $this->session->set_userdata('tabs', $tabs);
+        $data['current_tab'] = $tabs['mod_importdbf']['link'];
+        $data['content'] = $this->load->view('importdbf_list', $data, true);
+        $this->load->vars($data);
+        $this->load->view('default_view');
+    }
+
+    public function test() {
+        $param = array(
+            array(
+                'form_importdbf_list' => array(
+                    'tag' => 'a',
+                    'class' => 'btn',
+                    'link' => base_url() . 'mod_importdbf',
+                    'event' => '',
+                    'icon' => 'cus-application'
+                ),
+                'form_importdbf_new' => array(
+                    'tag' => 'a',
+                    'class' => 'btn',
+                    'link' => base_url() . 'mod_importdbf/form_importdbf_add',
+                    'event' => '',
+                    'icon' => 'cus-application-form-add'
+                ),
+                'form_importdbf_delete' => array(
+                    'tag' => 'a',
+                    'class' => 'btn',
+                    'link' => '#',
+                    'event' => '',
+                    'icon' => 'cus-application-form-delete'
+                )
+            )
+        );
+        $data['toolbars'] = $this->search_form->toolbar($param);
+
+        $DataModel = array(
+            array(
+                'text' => 'Nama Proyek',
+                'value' => 'text:LOWER(nama_proyek)',
+                'type' => 'text',
+                'callBack' => '',
+                'ops' => array("like", "not like", "=", "!=")
+            )
+        );
+
+        $defaultvalue = array();
+
+        $data['error'] = '';
+        $data['searchform'] = $this->searchform->setMultiSearch("true")->setDataModel($DataModel)->setDefaultValue($defaultvalue)->genSearchForm();
+        $data['ptitle'] = "Import Data";
+        $data['navs'] = $this->dataset_db->buildNav(0);
+        $tabs = $this->session->userdata('tabs');
+        if (!$tabs)
+            $tabs = array();
+        $tabs['mod_importdbf'] = $this->dataset_db->getModule('mod_importdbf');
+        $this->session->set_userdata('tabs', $tabs);
+        $data['current_tab'] = $tabs['mod_importdbf']['link'];
+        $data['content'] = $this->load->view('importdbf_test', $data, true);
+        $this->load->vars($data);
+        $this->load->view('default_view');
+    }
+
+    public function test_action() {
+        $config['upload_path'] = 'temp/';
+        $config['allowed_types'] = 'dbf';
+        $config['max_size'] = '100';
+
+        $this->load->library('upload', $config);
+
+        if (!$this->upload->do_upload()) {
+            $error = array('error' => $this->upload->display_errors());
+            $this->load->view('importdbf_test', $error);
+        } else {
+            $data = array('upload_data' => $this->upload->data());
+            $this->load->view('importdbf_success', $data);
+        }
+    }
+
+    public function form_importdbf_add() {
+        $param = array(
+            array(
+                'form_importdbf_list' => array(
+                    'tag' => 'a',
+                    'class' => 'btn',
+                    'link' => base_url() . 'mod_importdbf',
+                    'event' => '',
+                    'icon' => 'cus-application'
+                ),
+                'form_importdbf_new' => array(
+                    'tag' => 'a',
+                    'class' => 'btn',
+                    'link' => base_url() . 'mod_importdbf/form_importdbf_add',
+                    'event' => '',
+                    'icon' => 'cus-application-form-add'
+                ),
+                'form_importdbf_delete' => array(
+                    'tag' => 'a',
+                    'class' => 'btn',
+                    'link' => '#',
+                    'event' => '',
+                    'icon' => 'cus-application-form-delete'
+                )
+            )
+        );
+        $data['toolbars'] = $this->search_form->toolbar($param);
+        $data['ptitle'] = "Import Data";
+        $data['navs'] = $this->dataset_db->buildNav(0);
+        $tabs = $this->session->userdata('tabs');
+        if (!$tabs)
+            $tabs = array();
+        $tabs['mod_importdbf'] = $this->dataset_db->getModule('mod_importdbf');
+        $this->session->set_userdata('tabs', $tabs);
+        $data['current_tab'] = $tabs['mod_importdbf']['link'];
+        $data['content'] = $this->load->view('importdbf_add', $data, true);
+        $this->load->vars($data);
+        $this->load->view('default_view');
+    }
+
+    public function importdbf_add() {
+        $config['upload_path'] = 'temp/';
+        $config['allowed_types'] = 'dbf';
+        $config['max_size'] = '1024';
+        $this->load->library('upload', $config);
+
+        if (!$this->upload->do_upload()) {
+            $error = array('error' => $this->upload->display_errors());
+            print_r($error);
+        } else {
+            $data = array('upload_data' => $this->upload->data());
+            $upload_data = $this->upload->data();
+            $this->dbf_class->validate($upload_data["full_path"]);
+            if ($this->dbf_class->logging() == "success") {
+                $temp_result = array();
+                $this->dbf_class->test();
+                $temp_result = $this->dbf_class->dbf2array();
+
+                
+                echo "<pre><tt>";
+                print_r($temp_result);
+                echo "</tt></pre>";
+                
+                
+            } else {
+                echo "gagal";
+            }
+
+        }
+    }
+
+}

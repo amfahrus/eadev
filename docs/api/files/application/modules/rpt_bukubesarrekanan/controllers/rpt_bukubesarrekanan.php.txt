@@ -1,0 +1,34 @@
+<?php
+
+class rpt_bukubesarrekanan extends CI_Controller {
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->library('myauth');
+        if (!$this->myauth->logged_in()) {
+            $this->session->set_userdata('redir', current_url());
+            redirect('mod_user/user_auth');
+        }
+        $this->myauth->has_role();
+        $this->load->model('dataset_db');
+//        $this->load->model('bukubesar_model');
+//        $this->load->library('search_form');
+    }
+
+    public function index() {
+        $data['ptitle'] = "Buku Besar Rekanan";
+//        $data['getperiod'] = $this->bukubesar_model->getPeriod();
+        $data['navs'] = $this->dataset_db->buildNav(0);
+        $tabs = $this->session->userdata('tabs');
+        if (!$tabs)
+            $tabs = array();
+        $tabs['rpt_bukubesarrekanan'] = $this->dataset_db->getModule('rpt_bukubesarrekanan');
+        $this->session->set_userdata('tabs', $tabs);
+        $data['current_tab'] = $tabs['rpt_bukubesarrekanan']['link'];
+        $data['content'] = $this->load->view('bukubesarrekanan_list', $data, true);
+        $this->load->vars($data);
+        $this->load->view('default_view');
+    }
+
+}
+

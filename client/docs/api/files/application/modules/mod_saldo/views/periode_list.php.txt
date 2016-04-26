@@ -1,0 +1,73 @@
+<div class="content">
+    <?= form_open(); ?>
+    <div class="row-fluid">
+        <div class="span12">
+            <div class="box">
+                <div class="basic box_title"><h4><span>#</span> List Periode</h4></div>
+                <div class="basic box_content form_search" ></div>
+            </div>
+        </div>
+    </div>
+    <div class="row-fluid">
+        <div class="span12">
+            <table id="list2"></table>
+            <div id="pager2"></div>
+        </div>
+    </div>
+    <?= form_close(); ?> 
+</div>
+<?= $searchform; ?>
+<script type="text/javascript">
+    $(document).ready(function() {
+        var lebar = $('.inbody').height() - 100;
+        var panjang = $('.content').width() - 20;
+        jQuery("#list2").jqGrid({
+            url: root + 'mod_saldo/periode_json', 
+            mtype : "post",
+            datatype: "json", 
+            colNames:['#','Proyek', 'Period Name', 'Start Date','End Date'], 
+            colModel:[ 
+                {name:'edit',width:20, align: "center"},
+                {name:'nama_proyek',index:'nama_proyek', width:250}, 
+                {name:'period_name',index:'period_name', width:150}, 
+                {name:'date(period_start)',index:'date(period_start)', width:150}, 
+                {name:'date(period_end)',index:'date(period_end)', width:150}
+
+            ], 
+            rowNum:10, 
+            width: panjang, 
+            height: lebar, 
+            rownumbers: true, 
+            rownumWidth: 40,
+            rowList:[10,20,30], 
+            pager: '#pager2', 
+            multiselect: true,
+            viewrecords: true, 
+            shrinkToFit: false,
+            gridComplete: function(){ 
+                $(".tooltips").tooltip();
+            }
+        }); 
+        jQuery("#list2").jqGrid('navGrid','#pager2',{edit:false,add:false,del:false,search:false});
+        
+        $('#button_search').click(function () {
+            var str = $("form").serialize();
+            var search = "_search=true&"+ str;
+            jQuery("#list2").jqGrid('setGridParam',{
+                url: root + 'mod_saldo/periode_json?'+ search,
+                page:1
+            }).trigger("reloadGrid");
+        });
+        
+        $("#reset_search").click(function() {
+            $('.cols_cari').val("");
+            $('.ops_cari').val("");
+            $('.text').val("");
+            jQuery("#list2").jqGrid('setGridParam',{
+                url: root + 'mod_saldo/periode_json',
+                page:1
+            }).trigger("reloadGrid");
+        });
+    });
+</script>
+

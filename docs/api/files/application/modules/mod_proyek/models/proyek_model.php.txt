@@ -1,0 +1,203 @@
+<?php
+
+if (!defined('BASEPATH'))
+    exit('No direct script access allowed');
+
+class proyek_model extends CI_Model {
+
+    protected $_table;
+    protected $_countAll;
+
+    public function __construct() {
+        parent::__construct();
+        $this->config->load('database_tables', TRUE);
+        $this->_table = $this->config->item('database_tables');
+    }
+
+    function getAll($limit, $offset, $sidx, $sord, $cari, $search = "false") {
+
+        if (!is_array($cari))
+            $cari = array();
+
+        $this->db->start_cache();
+        if ($search == "true") {
+            foreach ($cari as $row) {
+                if (!empty($row['cols']) AND !empty($row['ops'])) {
+                    $fields = explode(":", $row['cols']);
+                    switch ($row['ops']) {
+                        case "=":
+                            $this->db->where($fields[1], strtolower($row['vals']));
+                            break;
+                        case "!=":
+                            $this->db->where($fields[1] . " !=", strtolower($row['vals']));
+                            break;
+                        case "like":
+                            $this->db->like($fields[1], strtolower($row['vals']), 'both');
+                            break;
+                        case "not like":
+                            $this->db->not_like($fields[1], strtolower($row['vals']));
+                            break;
+                        case ">":
+                            $this->db->where($fields[1] . " >", strtolower($row['vals']));
+                            break;
+                        case "<":
+                            $this->db->where($fields[1] . " <", strtolower($row['vals']));
+                            break;
+                        case ">=":
+                            $this->db->where($fields[1] . " >=", strtolower($row['vals']));
+                            break;
+                        case "<=":
+                            $this->db->where($fields[1] . " <=", strtolower($row['vals']));
+                            break;
+                    }
+                }
+            }
+        }
+
+        $this->db->from($this->_table['view_proyek']);
+        $this->_countAll = $this->db->count_all_results();
+        $this->db->select('*');
+        $this->db->order_by($sidx, $sord);
+        $this->db->limit($limit, $offset);
+        $query = $this->db->get($this->_table['view_proyek']);
+        $this->db->flush_cache();
+
+        $temp_result = array();
+        foreach ($query->result_array() as $row) {
+            $temp_result[] = array(
+                'id_proyek' => $row['id_proyek'],
+                'nama_subunit' => $row['nama_subunit'],
+                'nama_kategoriproyek' => $row['nama_kategoriproyek'],
+                'jenisproyek_name' => $row['jenisproyek_name'],
+                'kode_proyek' => $row['kode_proyek'],
+                'nama_proyek' => $row['nama_proyek']
+            );
+        }
+        return $temp_result;
+    }
+
+    public function countAll() {
+        return $this->_countAll;
+    }
+
+    public function getKatProyek() {
+        $this->db->select('id_katproyek, nama_kategoriproyek');
+        $this->db->from($this->_table['tbl_katproyek']);
+        $this->db->order_by('nama_kategoriproyek', 'asc');
+        $query = $this->db->get();
+
+        $temp_result = array();
+        $temp_result[''] = '';
+        foreach ($query->result_array() as $row) {
+            $temp_result[$row['id_katproyek']] = $row['nama_kategoriproyek'];
+        }
+        return $temp_result;
+    }
+
+    public function getJenisProyek() {
+        $this->db->select('jenisproyek_id, jenisproyek_name');
+        $this->db->from("tbl_jenisproyek");
+        $this->db->order_by('jenisproyek_name', 'asc');
+        $query = $this->db->get();
+
+        $temp_result = array();
+        $temp_result[''] = '';
+        foreach ($query->result_array() as $row) {
+            $temp_result[$row['jenisproyek_id']] = $row['jenisproyek_name'];
+        }
+        return $temp_result;
+    }
+
+    public function getSubUnitKerja() {
+        $this->db->select('id_subunitkerja, nama_subunit');
+        $this->db->from($this->_table['tbl_subunitkerja']);
+        $this->db->order_by('nama_subunit', 'asc');
+        $query = $this->db->get();
+
+        $temp_result = array();
+        $temp_result[''] = '';
+        foreach ($query->result_array() as $row) {
+            $temp_result[$row['id_subunitkerja']] = $row['nama_subunit'];
+        }
+        return $temp_result;
+    }
+
+    public function check_kode_proyek($kode_proyek = 0) {
+
+        $this->db->select('kode_proyek');
+        $this->db->from($this->_table['tbl_proyek']);
+        $this->db->where('kode_proyek', $kode_proyek);
+        $this->db->limit(1);
+        $result = $this->db->get();
+
+        if ($result->num_rows() > 0) {
+            return TRUE;
+        } else {
+            return false;
+        }
+    }
+
+    public function insert($data) {
+        $this->db->insert($this->_table['tbl_proyek'], $data);
+        return $this->db->insert_id();
+    }
+
+    public function delete($id) {
+        if (is_array($id)) {
+            $this->db->where_in('id_proyek', $id);
+        } else {
+            $this->db->where('id_proyek', $id);
+        }
+        $this->db->delete($this->_table['tbl_proyek']);
+    }
+
+    public function integer($str) {
+        return (bool) preg_match('/^[\-+]?[0-9]+$/', $str);
+    }
+
+    public function cekId($id) {
+
+        if (!empty($id) AND $this->integer($id)) {
+            $this->db->select("*");
+            $this->db->from($this->_table['tbl_proyek']);
+            $this->db->where("id_proyek", $id);
+            $query = $this->db->get();
+
+            if ($query->num_rows() > 0) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    public function getProyek($id) {
+        $this->db->select("*");
+        $this->db->from($this->_table['tbl_proyek']);
+        $this->db->where("id_proyek", $id);
+        $query = $this->db->get();
+
+        if ($query->num_rows() > 0) {
+            $row = $query->row_array();
+            return array(
+                'id_proyek' => $row['id_proyek'],
+                'kode_proyek' => $row['kode_proyek'],
+                'proyek_jenisproyek_id' => $row['proyek_jenisproyek_id'],
+                'id_katproyek' => $row['id_katproyek'],
+                'id_subunitkerja' => $row['id_subunitkerja'],
+                'nama_proyek' => $row['nama_proyek']
+            );
+        } else {
+            return array();
+        }
+    }
+
+    public function update($data, $id) {
+        $this->db->where('id_proyek', $id);
+        $this->db->update($this->_table['tbl_proyek'], $data);
+        return $id;
+    }
+
+}

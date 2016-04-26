@@ -1,0 +1,211 @@
+<?php
+
+if (!defined('BASEPATH'))
+    exit('No direct script access allowed');
+
+class mod_kdperkiraan extends CI_Controller {
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->library('myauth');
+        if (!$this->myauth->logged_in()) {
+            if (IS_AJAX) {
+                header('HTTP/1.1 401 Unauthorized');
+                exit;
+            } else {
+                $this->session->set_userdata('redir', current_url());
+                redirect('mod_user/user_auth');
+            }
+        }
+        $this->myauth->has_role();
+        $this->load->model('kdperkiraan_model');
+        $this->load->model('dataset_db');
+        $this->load->library("searchform");
+    }
+
+    public function index() {
+        $this->toolbar->create_toolbar();
+        $this->toolbar->cGroupButton();
+        $this->toolbar->addLink("", "btn tooltips", base_url() . "mod_kdperkiraan", "form_kdperkiraan_list", "cus-application", "List Kode Perkiraan", "tooltip", "right");
+        $this->toolbar->addLink("", "btn tooltips", "#", "form_kdperkiraan_new", "cus-application-form-add", "Add Kode Perkiraan", "tooltip", "right");
+        $this->toolbar->addLink("", "btn tooltips", "#", "form_kdperkiraan_delete", "cus-application-form-delete", "Delete Kode Perkiraan", "tooltip", "right");
+        $this->toolbar->eGroupButton();
+        $data['toolbars'] = $this->toolbar->generate();
+
+        $DataModel = array(
+            array(
+                'text' => 'Nama Akun',
+                'value' => 'text:LOWER(nmperkiraan)',
+                'type' => 'text',
+                'callBack' => '',
+                'ops' => array("like", "not like", "=", "!=")
+            ),
+            array(
+                'text' => 'Kode Akun',
+                'value' => 'text:LOWER(kdperkiraan)',
+                'type' => 'text',
+                'callBack' => '',
+                'ops' => array("like", "not like", "=", "!=")
+            )
+        );
+
+        $defaultvalue = array();
+
+        $data['searchform'] = $this->searchform->setMultiSearch("true")->setDataModel($DataModel)->setDefaultValue($defaultvalue)->genSearchForm();
+        $data['ptitle'] = "Master Kode Perkiraan";
+        $data['navs'] = $this->dataset_db->buildNav(0);
+        $tabs = $this->session->userdata('tabs');
+        if (!$tabs)
+            $tabs = array();
+        $tabs['mod_kdperkiraan'] = $this->dataset_db->getModule('mod_kdperkiraan');
+        $this->session->set_userdata('tabs', $tabs);
+        $data['current_tab'] = $tabs['mod_kdperkiraan']['link'];
+        $data['content'] = $this->load->view('kdperkiraan_list', $data, true);
+        $this->load->vars($data);
+        $this->load->view('default_view');
+    }
+
+    public function kdperkiraan_json() {
+		$userconfig = $this->dataset_db->getUserconfig($this->session->userdata('ba_user_id'));
+		$proyek = $userconfig["kolom2"];
+		
+        $search = isset($_GET['_search']) ? $_GET['_search'] : 'false';
+        $page = $this->input->post('page');
+        $limit = $this->input->post('rows');
+        $sidx = $this->input->post('sidx');
+        $sord = $this->input->post('sord');
+
+        $page = !empty($page) ? $page : 1;
+        $limit = !empty($limit) ? $limit : 20;
+        $sidx = !empty($sidx) ? $sidx : "kdperkiraan";
+        $sord = !empty($sord) ? $sord : "desc";
+
+        if (strtolower($search) == "true") {
+            $cols = isset($_GET['cols']) ? $_GET['cols'] : '';
+            $ops = isset($_GET['ops']) ? $_GET['ops'] : '';
+            $vals = isset($_GET['vals']) ? $_GET['vals'] : '';
+
+            $cari = array();
+            for ($x = 0; $x < count($cols); $x++) {
+                $cari[$x]['cols'] = $cols[$x];
+                $cari[$x]['ops'] = $ops[$x];
+                $cari[$x]['vals'] = $vals[$x];
+            }
+        } else {
+            $cari = "";
+        }
+
+        $offset = ($page * $limit) - $limit;
+        $offset = ($offset < 0) ? 0 : $offset;
+
+        if (!$sidx)
+            $sidx = 1;
+        $query = $this->kdperkiraan_model->getAllAkun($limit, $offset, $sidx, $sord, $cari, $search, $proyek);
+        $count = $this->kdperkiraan_model->countAll();
+
+        if ($count > 0) {
+            $total_pages = ceil($count / $limit);
+        } else {
+            $total_pages = 0;
+        }
+
+        if ($page > $total_pages)
+            $page = $total_pages;
+
+        $responce['page'] = $page;
+        $responce['total'] = $total_pages;
+        $responce['records'] = $count;
+        $i = 0;
+        foreach ($query as $row) {
+            $responce['rows'][$i]['id'] = $row['kdperkiraan'];
+            $responce['rows'][$i]['cell'] = array($row['kdperkiraan'], $row['nmperkiraan'], $row['flag_nasabah'], $row['flag_sumberdaya']);
+            $i++;
+        }
+        echo json_encode($responce);
+    }
+
+    public function popup_kdperkir() {
+        $data['content'] = $this->load->view('popup_kdperkir', '', true);
+        $this->load->vars($data);
+        $this->load->view('default_picker');
+    }
+
+    public function popup_json() {
+		$userconfig = $this->dataset_db->getUserconfig($this->session->userdata('ba_user_id'));
+		$proyek = $userconfig["kolom2"];
+		
+        $search = isset($_GET['_search']) ? $_GET['_search'] : 'false';
+        $page = $this->input->post('page');
+        $limit = $this->input->post('rows');
+        $sidx = $this->input->post('sidx');
+        $sord = $this->input->post('sord');
+
+        $page = !empty($page) ? $page : 1;
+        $limit = !empty($limit) ? $limit : 10;
+        $sidx = !empty($sidx) ? $sidx : "kdperkiraan";
+        $sord = !empty($sord) ? $sord : "asc";
+
+
+        if (strtolower($search) == "true") {
+            $kdperkiraan = isset($_GET['kdperkiraan']) ? $_GET['kdperkiraan'] : '';
+            $nmperkiraan = isset($_GET['nmperkiraan']) ? $_GET['nmperkiraan'] : '';
+            $cari = array();
+            $cari["kdperkiraan"] = $kdperkiraan;
+            $cari["nmperkiraan"] = $nmperkiraan;
+        } else {
+            $cari = "";
+        }
+
+        $offset = ($page * $limit) - $limit;
+        $offset = ($offset < 0) ? 0 : $offset;
+
+        if (!$sidx)
+            $sidx = 1;
+
+        $query = $this->kdperkiraan_model->getAll($limit, $offset, $sidx, $sord, $cari, $search, $proyek);
+        $count = $this->kdperkiraan_model->countAll();
+
+        if ($count > 0) {
+            $total_pages = ceil($count / $limit);
+        } else {
+            $total_pages = 0;
+        }
+
+        if ($page > $total_pages)
+            $page = $total_pages;
+
+        $responce['page'] = $page;
+        $responce['total'] = $total_pages;
+        $responce['records'] = $count;
+        $i = 0;
+        foreach ($query as $row) {
+            $responce['rows'][$i]['id'] = $row['dperkir_id'];
+            $responce['rows'][$i]['cell'] = array($row['dperkir_id'], $row['kdperkiraan'], $row['nmperkiraan'], $row['flag_sumberdaya'], $row['flag_nasabah']);
+            $i++;
+        }
+        echo json_encode($responce);
+    }
+
+    public function autocomplete_kodeperkiraan() {
+		$userconfig = $this->dataset_db->getUserconfig($this->session->userdata('ba_user_id'));
+		$proyek = $userconfig["kolom2"];
+		
+        $search = isset($_GET['_search']) ? $_GET['_search'] : '';
+        $cat = isset($_GET['cat']) ? $_GET['cat'] : '';
+        $param = isset($_GET['term']) ? $_GET['term'] : '';
+
+        $query = $this->kdperkiraan_model->getPerkiraan($param, $cat, $search, $proyek);
+        echo json_encode($query);
+    }
+
+    public function get_kodeperkiraan() {
+        $userconfig = $this->dataset_db->getUserconfig($this->session->userdata('ba_user_id'));
+		$proyek = $userconfig["kolom2"];
+		
+        $dt['dperkir_id'] = $this->input->post('item');
+        $json['json'] = $this->kdperkiraan_model->getPicker($dt,$proyek);
+        $this->load->view('template/ajax', $json);
+    }
+
+}
+

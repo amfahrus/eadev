@@ -1,0 +1,33 @@
+@charset "utf-8";
+/* CSS Document */
+
+				.topnav a span
+					{
+					height: auto;
+					}
+
+.footer {
+	position:absolute;
+	z-index:10;
+	top:expression(eval(document.compatMode && document.compatMode=='CSS1Compat') ? documentElement.scrollTop +(documentElement.clientHeight-this.clientHeight) : document.body.scrollTop +(document.body.clientHeight-this.clientHeight));
+}
+
+
+.dpane
+	{
+	width: 700px;
+	}
+
+.ptabs
+	{
+	height: 28px;
+	overflow: hidden;
+	margin-bottom: -1px;
+	}
+	
+	.ptabs a.sel, .ptabs a:hover
+		{
+		position: relative;
+		z-index: 3;
+		margin-bottom: -1px;
+		}	

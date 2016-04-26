@@ -1,0 +1,86 @@
+<div class="content form_perioda_year">
+    <form id="perioda_add">
+        <input type="hidden" name="yearperiod_id" value="<?= $rec["yearperiod_id"]; ?>" />
+        <div class="row-fluid">
+            <div class="span12">
+                <div class="row-fluid">
+                    <label class="form-label span3" for="start_date">Start Date</label>
+                    <input class="span8 datepicker" type="text" name="start_date" id="start_date" value="<?= $rec["yearperiod_start"]; ?>"/>
+                </div>
+            </div>
+        </div>
+        <div class="row-fluid">
+            <div class="span12">
+                <div class="row-fluid">
+                    <label class="form-label span3" for="end_date">End Date</label>
+                    <input class="span8 datepicker" type="text" name="end_date" id="end_date" value="<?= $rec["yearperiod_end"]; ?>"/>
+                </div>
+            </div>
+        </div>
+        <!--        <div class="row-fluid">
+                    <div class="span12">
+                        <div class="row-fluid">
+                            <label class="form-label span3">&nbsp;</label>
+                            <label class="span9 checkbox"><input type="checkbox" name="is_closed" value="true" >Close</label>
+                        </div>
+                    </div>
+                </div>-->
+        <div class="row-fluid">
+            <div class="span12">
+                <div class="row-fluid">
+                    <label class="form-label span3">&nbsp;</label>
+                    <button type="button" name="form_perioda_year_save" class="btn btn-primary"><i class="icon-arrow-right icon-white"></i> Save</button>
+<!--                    <button type="button" name="cancel" id="cancel" class="btn btn-primary"><i class="icon-remove icon-white"></i> Cancel</button>-->
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+<script type="text/javascript">
+    $('button[name="form_perioda_year_save"]').click(function() {
+        var start_date = $('input[name="start_date"]').val();
+        var end_date = $('input[name="end_date"]').val();
+        var yearperiod_id = $('input[name="yearperiod_id"]').val();
+        
+        $.ajax({
+            url: root + 'mod_perioda/perioda_year_edit_act',
+            dataType: 'json',
+            type: 'post',
+            data: { 
+                start_date:start_date, 
+                end_date:end_date,
+                yearperiod_id:yearperiod_id
+            },
+            beforeSend: function() {
+                $(this).attr('disabled',true);
+            },	
+            complete: function() {
+                $(this).attr('disabled',false);
+            },			
+            success: function(json) {
+                $('div.alert').remove();
+                if (json['error']) {
+                    $('.form_perioda_year').prepend('<div class="alert alert-error"><button type="button" class="close" data-dismiss="alert">&times;</button>'+json['error']+'</div>');
+                    $('div.alert').fadeIn('slow');
+                }
+                
+                if (json['success']) {
+                    $('.form_perioda_year').prepend('<div class="alert alert-success"><button type="button" class="close" data-dismiss="alert">&times;</button>'+json['success']+'</div>');
+                    $('div.alert').fadeIn('slow');
+                    parent.pkcaller();
+                }
+            }
+        });
+    });
+    
+    $(function() {
+        $(".datepicker").datepicker({
+            showOn: "button",
+            buttonImage: root + "images/calendar.gif",
+            dateFormat : 'yy-mm-dd',
+            buttonImageOnly: true,
+            changeMonth: true,
+            changeYear: true
+        });
+    });
+</script>

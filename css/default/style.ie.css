@@ -1,0 +1,18 @@
+@charset "utf-8";
+/* CSS Document */
+
+.disabled b
+	{
+	filter:alpha(opacity=20);
+	}
+
+.body
+	{
+	overflow: hidden;
+	}
+	
+	div.inbody
+		{
+		position: relative;
+		overflow:visible; overflow-y:auto; overflow-x:hidden;
+		}

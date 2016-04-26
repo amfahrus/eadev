@@ -1,0 +1,14 @@
+        <!--insert content here-->
+        </div>
+        </div>
+
+<!--        <div class="footer">
+
+        </div>-->
+
+        <div class="sidetog"></div>
+
+        </div>
+        <script type="text/javascript" src="<?= base_url() ?>lib/site/script.js"></script>
+    </body>
+</html>

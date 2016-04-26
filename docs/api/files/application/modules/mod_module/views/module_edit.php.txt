@@ -1,0 +1,132 @@
+<div class="content">
+    <?= form_open("mod_module/module_edit"); ?>
+    <input type="hidden" name="id" value="<?= $detail["id_modules"]; ?>" />
+    <div class="row-fluid">
+        <div class="span12">
+            <div class="box">
+                <div class="basic box_title"><h4><span>#</span> Module Edit</h4></div>
+                <div class="basic box_content form-horizontal">
+                    <div class="row-fluid">
+                        <div class="control-group info">
+                            <label class="control-label" for="modules">Module</label>
+                            <div class="controls">
+                                <input class="span8 text" type="text" id="modules" name="modules" value="<?= $detail["modules"]; ?>" autocomplete="off" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row-fluid">
+                        <div class="control-group info">
+                            <label class="control-label" for="icon">Icon</label>
+                            <div class="controls">
+                                <input class="span8 text" type="text" id="icon" name="icon" value="<?= $detail["icon"]; ?>" autocomplete="off" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row-fluid">
+                        <div class="control-group info">
+                            <label class="control-label" for="parent">Parent</label>
+                            <div class="controls">
+                                <?= form_dropdown('parent', $parent, $detail["parent"], 'id="parent"'); ?>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row-fluid">
+                        <div class="control-group info">
+                            <label class="control-label" for="publish">Publish</label>
+                            <div class="controls">
+                                <?= form_dropdown('publish', $publish, $detail["publish"], 'id="publish"'); ?>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row-fluid">
+                        <div class="control-group info">
+                            <label class="control-label" for="link">Link</label>
+                            <div class="controls">
+                                <input class="span8 text" type="text" id="link" name="link" value="<?= $detail["link"]; ?>" autocomplete="off" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row-fluid">
+                        <div class="control-group info">
+                            <label class="control-label" for="sort">Urutan</label>
+                            <div class="controls">
+                                <input class="span8 text" type="text" id="sort" name="sort" value="<?= $detail["sort"]; ?>" autocomplete="off" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row-fluid">
+                        <div class="control-group info">
+                            <div class="controls">
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-info" name="form_moduleadd_save"><i class="icon-ok-sign icon-white"></i> Save</button>
+<!--                                    <button type="button" class="btn"><i class="icon-remove"></i>Cancel</button>-->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?= form_close(); ?>
+</div>
+<script type="text/javascript">
+    function formModuleAddClear() {
+        $('input[name="modules"]').val("");
+        $('input[name="icon"]').val("");
+        $('select[name="parent"]').val("");
+        $('select[name="publish"]').val("");
+        $('input[name="link"]').val("");
+        $('input[name="sort"]').val("");
+    }
+
+    $(document).ready(function() {
+        $('button[name="form_moduleadd_save"]').bind('click', function() {
+            var _id = $('input[name="id"]').val();
+            var _modules = $('input[name="modules"]').val();
+            var _icon = $('input[name="icon"]').val();
+            var _parent = $('select[name="parent"]').val();
+            var _publish = $('select[name="publish"]').val();
+            var _link = $('input[name="link"]').val();
+            var _sort = $('input[name="sort"]').val();
+
+            $.ajax({
+                url: root + 'mod_module/module_edit',
+                dataType: 'json',
+                type: 'post',
+                data: {
+                    id: _id,
+                    modules: _modules,
+                    icon: _icon,
+                    parent: _parent,
+                    publish: _publish,
+                    link: _link,
+                    sort: _sort
+                },
+                beforeSend: function() {
+                    $(this).attr('disabled', true);
+                },
+                complete: function() {
+                    $(this).attr('disabled', true);
+                },
+                success: function(json) {
+                    $('div.alert').remove();
+                    if (json['error']) {
+                        $('.content').prepend('<div class="alert alert-error"><button type="button" class="close" data-dismiss="alert">&times;</button>' + json['error'] + '</div>');
+                        $('div.alert').fadeIn('slow');
+                    }
+                    if (json['success']) {
+                        $('.content').prepend('<div class="alert alert-success"><button type="button" class="close" data-dismiss="alert">&times;</button>' + json['success'] + '</div>');
+                        $('div.alert').fadeIn('slow');
+                        formModuleAddClear();
+                    }
+                    if (json['redirect']) {
+                        location = json['redirect'];
+                    }
+                    scrollup();
+                    createAutoClosingAlert('div.alert', 3000);
+                }
+            });
+        });
+    });
+</script>

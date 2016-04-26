@@ -1,0 +1,359 @@
+<?php
+
+class bukubesar_model extends CI_Model {
+
+    protected $_table;
+    protected $_countAll;
+    protected $_arrayBukuBesar = array();
+
+    public function __construct() {
+        parent::__construct();
+        $this->config->load('database_tables', TRUE);
+        $this->_table = $this->config->item('database_tables');
+    }
+
+    public function getKodeperkir() {
+        $query = $this->db->get('kodeperkiraan_v');
+
+        $temp_result = array();
+        foreach ($query->result_array() as $row) {
+            $temp_result[$row['kdperkiraan']] = $row['nmperkiraan'];
+        }
+        return $temp_result;
+    }
+
+    public function getdateperiod($id) {
+        $sql = "SELECT period_start, period_end FROM period  WHERE period_id = " . $id;
+        $query = $this->db->query($sql);
+        $temp_result = array();
+        if ($query->num_rows() > 0) {
+            $row = $query->row_array();
+            $temp_result["period_start"] = $row["period_start"];
+            $temp_result["period_end"] = $row["period_end"];
+            return $temp_result;
+        } else {
+            return false;
+        }
+    }
+
+    public function getBukuBesar($limit, $offset, $sidx, $sord, $cari, $search) {
+        if (!is_array($cari))
+            $cari = array();
+
+        if ($search == "true") {
+            $sql = "select * from getgledger(" . $cari["subunit_proyek"] . ", " . $cari["periode_awal"] . "," . $cari["periode_akhir"] . ", '" . $cari["coa"] . "')";
+            $query = $this->db->query($sql);
+            $count = $query->num_rows();
+
+            $sql .= " limit " . $limit . " offset " . $offset;
+            $query = $this->db->query($sql);
+
+            $data["count"] = $count;
+            $data["rec"] = $query->result_array();
+
+            return $data;
+        } else {
+            return array();
+        }
+    }
+    
+    public function getBukuBesarXls($cari) {
+        if (!is_array($cari))
+            $cari = array();
+		$tmp_result = array();
+		$sql = "select * from getgledger(" . $cari["subunit_proyek"] . ", " . $cari["periode_awal"] . "," . $cari["periode_akhir"] . ", '" . $cari["coa"] . "')";
+		$data = $this->db->query($sql);
+		
+		foreach($data->result_array() as $row){
+			$tmp_result[] = array(
+						'nomor' 		=> $row['gledger_nomor'],
+						'tanggal' 		=> $row['gledger_tanggal'],
+						'no_bukti'		=> $row['gledger_no_bukti'],
+						'rekanan'		=> $row['gledger_rekanan'],
+						'uraian'		=> $row['gledger_uraian'],
+						'coa'			=> $row['gledger_coa'],
+						'debet'			=> $row['gledger_debet'],
+						'kredit'		=> $row['gledger_kredit'],
+						'saldo'		=> $row['gledger_saldo']
+						
+					);
+		}	
+        return $tmp_result;
+    }
+
+    public function arrayToexcel() {
+        $bulan = $this->search_form->getBulan();
+
+        $temp_result = array();
+        foreach ($this->_arrayBukuBesar as $key => $value) {
+
+            $temp_result[$key]["nama_proyek"] = $value["nama_proyek"];
+            $temp_result[$key]["tahun"] = $value["tahun"];
+            $temp_result[$key]["kode_perkiraan"] = $value["coa"];
+
+            foreach ($value["bulan"] as $key2 => $value2) {
+
+                $sub_total_debet = 0;
+                $sub_total_kredit = 0;
+                $no = 1;
+
+                $temp_result[$key]["data"][] = array(
+                    "nomor" => "",
+                    "tanggal" => "",
+                    "no_bukti" => "",
+                    "rekanan" => "",
+                    "uraian" => "Saldo Awal " . $bulan[$value2["bln"]],
+                    "coa" => "",
+                    "debet" => $value2["saldo_awal"],
+                    "kredit" => ""
+                );
+
+                foreach ($value2["detail"] as $key3 => $value3) {
+
+                    $temp_result[$key]["data"][] = array(
+                        "nomor" => $no,
+                        "tanggal" => $value3["tanggal"],
+                        "no_bukti" => $value3["nobukti"],
+                        "rekanan" => $value3["rekanan"],
+                        "uraian" => $value3["keterangan"],
+                        "coa" => $value3["kdperkiraan"],
+                        "debet" => $value3["debet"],
+                        "kredit" => $value3["kredit"]
+                    );
+                    $sub_total_debet += $value3["debet"];
+                    $sub_total_kredit += $value3["kredit"];
+                    $no++;
+                }
+                $temp_result[$key]["data"][] = array(
+                    "nomor" => "",
+                    "tanggal" => "",
+                    "no_bukti" => "",
+                    "rekanan" => "",
+                    "uraian" => "Sub Total Transaksi",
+                    "coa" => "",
+                    "debet" => $sub_total_debet + $value2["saldo_awal"],
+                    "kredit" => (!empty($sub_total_kredit) or $sub_total_kredit != 0) ? $sub_total_kredit : "0"
+                );
+
+                $temp_result[$key]["data"][] = array(
+                    "nomor" => "",
+                    "tanggal" => "",
+                    "no_bukti" => "",
+                    "rekanan" => "",
+                    "uraian" => "Saldo Akhir",
+                    "coa" => "",
+                    "debet" => $value2["saldo_akhir"],
+                    "kredit" => ""
+                );
+                $temp_result[$key]["data"][] = array(
+                    "nomor" => "",
+                    "tanggal" => "",
+                    "no_bukti" => "",
+                    "rekanan" => "",
+                    "uraian" => "",
+                    "coa" => "",
+                    "debet" => "",
+                    "kredit" => ""
+                );
+            }
+        }
+
+        return $temp_result;
+    }
+
+    public function arraybukubesar() {
+        $temp_result = array();
+        foreach ($this->_arrayBukuBesar as $value) {
+            foreach ($value["periode"] as $value2) {
+                $temp_result[] = array(
+                    "nomor" => "",
+                    "tanggal" => "",
+                    "no_bukti" => "",
+                    "rekanan" => "",
+                    "uraian" => "<strong>" . $value["kode"] . " " . $value2["period_name"] . " : " . $value2["period_start"] . " s/d " . $value2["period_end"] . "</strong>",
+                    "coa" => "",
+                    "debet" => "",
+                    "kredit" => ""
+                );
+                $temp_result[] = array(
+                    "nomor" => "",
+                    "tanggal" => "",
+                    "no_bukti" => "",
+                    "rekanan" => "",
+                    "uraian" => "Saldo Awal",
+                    "coa" => "",
+                    "debet" => myFormatMoney($value2["saldo_awal"]),
+                    "kredit" => ""
+                );
+
+                $nomor = 1;
+                foreach ($value2["detail"] as $value3) {
+//                    if (empty($value3["id_jurnal"]) || $value3["id_jurnal"] == "") {
+//                        continue;
+//                    } else {
+                    $temp_result[] = array(
+                        "nomor" => $nomor,
+                        "tanggal" => $value3["tanggal"],
+                        "no_bukti" => $value3["nobukti"],
+                        "rekanan" => $value3["rekanan"],
+                        "uraian" => $value3["keterangan"],
+                        "coa" => $value3["coa_kredit"],
+                        "debet" => myFormatMoney($value3["debet"]),
+                        "kredit" => myFormatMoney($value3["kredit"])
+                    );
+//                    }
+                    $nomor++;
+                }
+                $temp_result[] = array(
+                    "nomor" => "",
+                    "tanggal" => "",
+                    "no_bukti" => "",
+                    "rekanan" => "",
+                    "uraian" => "Sub Total",
+                    "coa" => "",
+                    "debet" => myFormatMoney($value2["sub_total_debet"]),
+                    "kredit" => myFormatMoney($value2["sub_total_kredit"])
+                );
+                $temp_result[] = array(
+                    "nomor" => "",
+                    "tanggal" => "",
+                    "no_bukti" => "",
+                    "rekanan" => "",
+                    "uraian" => "Saldo Akhir",
+                    "coa" => "",
+                    "debet" => myFormatMoney($value2["saldo_akhir"]),
+                    "kredit" => ""
+                );
+                $temp_result[] = array(
+                    "nomor" => "",
+                    "tanggal" => "",
+                    "no_bukti" => "",
+                    "rekanan" => "",
+                    "uraian" => "",
+                    "coa" => "",
+                    "debet" => "",
+                    "kredit" => ""
+                );
+            }
+        }
+        return $temp_result;
+    }
+
+    public function getPeriod($proyek) {
+        $sql = "SELECT period_id,
+                period_name,
+                period_start || ' s/d ' || period_end as period_range
+                FROM period
+                WHERE period.id_proyek = $proyek
+                ORDER BY period_start ASC";
+
+        $query = $this->db->query($sql);
+        $temp_result = array();
+        foreach ($query->result_array() as $row) {
+            $temp_result[] = array(
+                'image' => "",
+                'description' => $row['period_range'],
+//                'description' => $row['period_range'],
+                'value' => $row['period_id'],
+                'text' => ""
+//                'text' => $row['period_name']
+            );
+        }
+        return $temp_result;
+    }
+	
+	public function getdperkir($proyek) {
+        $sql = "SELECT a.*, kdperkiraan || ' - ' || nmperkiraan as coa
+				FROM tbl_dperkir a
+				LEFT JOIN tbl_proyek b on a.dperkir_jenis_id = b.dperkir_jenis_id
+				WHERE b.id_proyek = $proyek
+				ORDER BY a.dperkir_id ASC";
+
+        $query = $this->db->query($sql);
+        $temp_result = array();
+        foreach ($query->result_array() as $row) {
+            $temp_result[] = array(
+                'image' => "",
+                'description' => $row['coa'],
+//                'description' => $row['period_range'],
+                'value' => $row['dperkir_id'],
+                'text' => ""
+//                'text' => $row['period_name']
+            );
+        }
+        return $temp_result;
+    }
+	
+    public function _getSaldoAwal($id_proyek, $kodeperkiraan, $bulan, $tahun) {
+
+        $id_proyek = !empty($id_proyek) ? $id_proyek : 0;
+        $kodeperkiraan = !empty($kodeperkiraan) ? $kodeperkiraan : 0;
+        $bulan = !empty($bulan) ? $bulan : 0;
+        $tahun = !empty($tahun) ? $tahun : 0;
+
+        $sql = "select
+(sum(a.debet) - sum(a.kredit)) as sisa
+from
+(
+SELECT
+jur.id_proyek,
+ jur.kdperkiraan,
+ date_part('MONTH', jur.tanggal) as bulan,
+ date_part('YEAR', jur.tanggal) as tahun,
+ (CASE WHEN upper(jur.dk) = 'D' THEN SUM(rupiah) else 0 END) AS debet,
+ (CASE WHEN upper(jur.dk) = 'K' THEN SUM(rupiah) else 0 END) AS kredit
+FROM
+tbl_jurnal jur
+WHERE
+date_part('MONTH', jur.tanggal) < " . $this->db->escape($bulan) . " AND
+date_part('YEAR', jur.tanggal) = " . $this->db->escape($tahun) . " AND
+jur.id_proyek = " . $this->db->escape($id_proyek) . " AND
+jur.kdperkiraan = " . $this->db->escape($kodeperkiraan) . "
+GROUP BY
+jur.id_proyek,
+ jur.kdperkiraan,
+ jur.tanggal,
+ jur.dk
+) as a
+group by
+a.id_proyek,
+ a.kdperkiraan";
+
+        $query = $this->db->query($sql);
+        if ($query->num_rows() > 0) {
+            $row = $query->row_array();
+            return $row["sisa"];
+        } else {
+            return false;
+        }
+    }
+
+	public function getProyekName($id) {
+
+        $this->db->select('nama_proyek');
+        $this->db->from('list_proyek_v');
+        $this->db->where('id_proyek', $id);
+        $query = $this->db->get();
+
+        $proyek = '';
+        foreach ($query->result_array() as $row) {
+            $proyek = $row['nama_proyek'];
+        }
+        return $proyek;
+    }
+    
+    public function getPeriodName($id) {
+
+        $this->db->select('period_name');
+        $this->db->from('perioda_v');
+        $this->db->where('period_id', $id);
+        $query = $this->db->get();
+
+        $result = '';
+        foreach ($query->result_array() as $row) {
+            $result = $row['period_name'];
+        }
+        return $result;
+    }
+}
+

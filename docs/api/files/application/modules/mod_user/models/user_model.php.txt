@@ -1,0 +1,272 @@
+<?php
+
+class user_model extends CI_Model {
+
+    protected $_table;
+    protected $_countAll;
+
+    public function __construct() {
+        parent::__construct();
+        $this->config->load('database_tables', TRUE);
+        $this->_table = $this->config->item('database_tables');
+    }
+
+    public function user_insert_id() {
+        $sql = "SELECT CURRVAL('tbl_user_user_id_seq') AS ins_id";
+        $query = $this->db->query($sql);
+
+        if ($query->num_rows() > 0) {
+            $row = $query->row_array();
+            return $row["ins_id"];
+        } else {
+            return false;
+        }
+    }
+
+    public function insert_users($data) {
+        $this->db->insert($this->_table['tbl_user'], $data);
+//        return $this->db->insert_id();
+        return $this->user_insert_id();
+    }
+
+    public function insert_userdata($data) {
+        $this->db->insert($this->_table['tbl_userdata'], $data);
+        return $this->db->insert_id();
+    }
+
+    public function update_user($data, $id) {
+        $this->db->where('user_id', $id);
+        $this->db->update($this->_table['tbl_user'], $data);
+        return $id;
+    }
+
+    public function update_userdata($data, $id) {
+        $this->db->where('userdata_id', $id);
+        $this->db->update($this->_table['tbl_userdata'], $data);
+        return $id;
+    }
+
+    public function get($id) {
+        $this->db->select('*');
+        $this->db->from('tbl_users_v');
+        $this->db->where('user_id', $id);
+        $query = $this->db->get();
+        if ($query->num_rows() > 0) {
+            $row = $query->row_array();
+            return array(
+                'user_id' => $row['user_id'],
+                'id_group' => $row['id_group'],
+                'is_proyek' => $row['is_proyek'],
+                'id_relasi' => $row['id_relasi'],
+                'username' => $row['username'],
+                'active' => $row['active'],
+                'enabled' => $row['enabled'],
+                'userdata_id' => $row['userdata_id'],
+                'fullname' => $row['fullname'],
+                'email' => $row['email'],
+            );
+        } else {
+            return array();
+        }
+    }
+
+    function getAll($limit, $offset, $sidx, $sord, $cari, $search = "false") {
+
+        if (!is_array($cari))
+            $cari = array();
+
+        $this->db->start_cache();
+        if ($search == "true") {
+            foreach ($cari as $row) {
+                if (!empty($row['cols']) AND !empty($row['ops'])) {
+                    $fields = explode(":", $row['cols']);
+                    switch ($row['ops']) {
+                        case "=":
+                            $this->db->where($fields[1], strtolower($row['vals']));
+                            break;
+                        case "!=":
+                            $this->db->where($fields[1] . " !=", strtolower($row['vals']));
+                            break;
+                        case "like":
+                            $this->db->like($fields[1], strtolower($row['vals']), 'both');
+                            break;
+                        case "not like":
+                            $this->db->not_like($fields[1], strtolower($row['vals']));
+                            break;
+                        case ">":
+                            $this->db->where($fields[1] . " >", strtolower($row['vals']));
+                            break;
+                        case "<":
+                            $this->db->where($fields[1] . " <", strtolower($row['vals']));
+                            break;
+                        case ">=":
+                            $this->db->where($fields[1] . " >=", strtolower($row['vals']));
+                            break;
+                        case "<=":
+                            $this->db->where($fields[1] . " <=", strtolower($row['vals']));
+                            break;
+                    }
+                }
+            }
+        }
+
+        $this->db->from('tbl_users_v');
+        $this->_countAll = $this->db->count_all_results();
+        $this->db->select('*');
+        $this->db->order_by($sidx, $sord);
+        $this->db->limit($limit, $offset);
+        $query = $this->db->get('tbl_users_v');
+        $this->db->flush_cache();
+
+        $temp_result = array();
+        foreach ($query->result_array() as $row) {
+            $temp_result[] = array(
+                'user_id' => $row['user_id'],
+                'username' => $row['username'],
+                'fullname' => $row['fullname'],
+                'nama_group' => $row['nama_group'],
+                'unit_kerja' => $row['unit_kerja']
+            );
+        }
+        return $temp_result;
+    }
+
+    public function check_username($username = 0) {
+
+        $this->db->select('username');
+        $this->db->from("tbl_users_v");
+        $this->db->where('username', $username);
+        $this->db->limit(1);
+        $result = $this->db->get();
+
+        if ($result->num_rows() > 0) {
+            return TRUE;
+        } else {
+            return false;
+        }
+    }
+
+    public function check_email($email = 0) {
+
+        $this->db->select('email');
+        $this->db->from("tbl_users_v");
+        $this->db->where('email', $email);
+        $this->db->limit(1);
+        $result = $this->db->get();
+
+        if ($result->num_rows() > 0) {
+            return TRUE;
+        } else {
+            return false;
+        }
+    }
+
+    public function countAll() {
+        return $this->_countAll;
+    }
+
+    public function delete($id) {
+        if (is_array($id)) {
+            $this->db->where_in('user_id', $id);
+        } else {
+            $this->db->where('user_id', $id);
+        }
+        $this->db->delete($this->_table['tbl_user']);
+    }
+
+    public function getConfigUser($id) {
+
+        $this->db->select('tbl_userconfig.*');
+        $this->db->from($this->_table['tbl_user']);
+        $this->db->join($this->_table['tbl_userconfig'], 'tbl_user.user_id = tbl_userconfig.user_id');
+        $this->db->where("tbl_user.user_id", $id);
+        $query = $this->db->get();
+
+        if ($query->num_rows() > 0) {
+            $row = $query->row_array();
+            return array(
+                'id_userconfig' => $row['id_userconfig'],
+                'user_id' => $row['user_id'],
+                'kolom1' => $row['kolom1'],
+                'kolom2' => $row['kolom2'],
+                'kolom3' => $row['kolom3'],
+                'kolom4' => $row['kolom4']
+            );
+        } else {
+            return array();
+        }
+    }
+
+    public function UpdateConfigUser($data, $item = "") {
+        if ($item == '') {
+            $this->db->trans_start();
+            $this->db->insert($this->_table['tbl_userconfig'], $data);
+            $item = $this->db->insert_id();
+            $this->db->trans_complete();
+        } else {
+            $this->db->trans_start();
+            $this->db->where('id_userconfig', $item);
+            $this->db->update($this->_table['tbl_userconfig'], $data);
+            $this->db->trans_complete();
+        }
+        return $item;
+    }
+
+    public function getDomain($id) {
+        $this->db->select('*');
+        $this->db->from($this->_table['tbl_proyek']);
+        $this->db->where("id_proyek", $id);
+        $query = $this->db->get();
+
+        if ($query->num_rows() > 0) {
+            $row = $query->row_array();
+            return array(
+                'id_proyek' => $row['id_proyek'],
+                'kode_proyek' => $row['kode_proyek'],
+                'id_katproyek' => $row['id_katproyek'],
+                'id_subunitkerja' => $row['id_subunitkerja'],
+                'nama_proyek' => $row['nama_proyek']
+            );
+        } else {
+            return array();
+        }
+    }
+
+    public function getUnitkerja() {
+
+        $this->db->select('id_unitkerja, nama_unitkerja');
+        $this->db->from('tbl_unitkerja');
+        $this->db->order_by('nama_unitkerja', 'asc');
+        $query = $this->db->get();
+
+        $temp_result = array();
+        foreach ($query->result_array() as $row) {
+            $temp_result[] = array(
+                'image' => '',
+                'description' => $row["nama_unitkerja"],
+                'value' => $row["id_unitkerja"],
+                'text' => ''
+            );
+        }
+        return $temp_result;
+    }
+
+    public function getProyek() {
+        $this->db->select('id_proyek, nama_proyek');
+        $this->db->from('list_proyek_v');
+        $this->db->order_by('nama_proyek', 'asc');
+        $query = $this->db->get();
+
+        $temp_result = array();
+        foreach ($query->result_array() as $row) {
+            $temp_result[] = array(
+                'image' => '',
+                'description' => $row["nama_proyek"],
+                'value' => $row["id_proyek"],
+                'text' => ''
+            );
+        }
+        return $temp_result;
+    }
+
+}

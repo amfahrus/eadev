@@ -1,0 +1,12 @@
+
+body
+{
+	font-family: Arial;
+	margin: 0px;
+	padding: 10px;
+}
+
+.flex_pointer
+{	
+	cursor:pointer;
+}
